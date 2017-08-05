@@ -1,0 +1,2 @@
+# OSScrollViewScrollIndicato
+自定义scrollView 滚动指示器
