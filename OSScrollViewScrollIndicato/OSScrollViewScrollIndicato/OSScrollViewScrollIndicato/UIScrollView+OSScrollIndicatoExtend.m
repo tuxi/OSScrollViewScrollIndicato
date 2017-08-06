@@ -13,10 +13,36 @@ struct OSScrollIndicatoScrollViewState {
     BOOL showsVerticalScrollIndicator;
 };
 
+typedef NSString * ImplementationKey NS_EXTENSIBLE_STRING_ENUM;
 static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewContext;
 static CGFloat OSScrollIndicatoViewWidth = 20.0;
 
 typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
+
+
+#pragma mark *** _SwizzlingObject ***
+
+@interface _SwizzlingObject : NSObject
+
+@property (nonatomic) Class swizzlingClass;
+@property (nonatomic) SEL orginSelector;
+@property (nonatomic) SEL swizzlingSelector;
+@property (nonatomic) NSValue *swizzlingImplPointer;
+
+@end
+
+#pragma mark *** NSObject (SwizzlingExtend) ***
+
+@interface NSObject (SwizzlingExtend)
+
+@property (nonatomic, class, readonly) NSMutableDictionary<ImplementationKey, _SwizzlingObject *> *implementationDictionary;
+
+- (Class)xy_baseClassToSwizzling;
+- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector;
+
+@end
+
+#pragma mark *** UIScrollView () ***
 
 @interface UIScrollView ()
 
@@ -24,6 +50,7 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 
 @end
 
+#pragma mark *** OSScrollIndicatoView ***
 
 @interface OSScrollIndicatoView ()
 
@@ -33,8 +60,7 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 @property (nonatomic, strong) UIImageView *indicatoView;
 @property (nonatomic, assign) BOOL dragging;
 /// 手指中心的偏移量
-@property (nonatomic, assign) CGFloat offsetY;
-@property (nonatomic, assign) CGFloat offsetX;
+@property (nonatomic, assign) CGPoint fingerOffset;
 @property (nonatomic, assign) BOOL disabled;
 #ifdef __IPHONE_10_0
 @property (nonatomic, strong) UIImpactFeedbackGenerator *feedbackGenerator;
@@ -253,7 +279,7 @@ indicatoTintColor = _indicatoTintColor;
     scrollViewFrame.size.height -= (contentInset.top + contentInset.bottom);
     CGFloat height = scrollViewFrame.size.height - (_indicatoVerticalInstt.top + _indicatoVerticalInstt.bottom);
     CGFloat offsetX = halfWidth - _edgeInset;
-    self.offsetX = MAX(offsetX, 0.0);
+    self.fingerOffset = CGPointMake(MAX(offsetX, 0.0), self.fingerOffset.y);
     
     CGRect frame = CGRectZero;
     frame.size.width = OSScrollIndicatoViewWidth;
@@ -272,10 +298,11 @@ indicatoTintColor = _indicatoTintColor;
     
     CGRect frame = self.frame;
     
+    // trackView的frame
     CGRect trackFrame = CGRectZero;
     trackFrame.size.width = _trackWidth;
     trackFrame.size.height = frame.size.height;
-    trackFrame.origin.x  = ceilf(((frame.size.width - _trackWidth) * 0.5) + _offsetX);
+    trackFrame.origin.x  = ceilf(((frame.size.width - _trackWidth) * 0.5) + self.fingerOffset.x);
     self.trackView.frame = CGRectIntegral(trackFrame);
     
     // Don't handle automatic layout when dragging; we'll do that manually elsewhere
@@ -283,13 +310,13 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     
-    // The frame of the handle
+    // 指示器的frame
     CGRect indicatoFrame = CGRectZero;
     indicatoFrame.size.width = _indicatoWidth;
     indicatoFrame.size.height = [self heightOfIndicatoForContentSize];
-    indicatoFrame.origin.x = ceilf(((frame.size.width - _indicatoWidth) * 0.5f) + _offsetX);
+    indicatoFrame.origin.x = ceilf(((frame.size.width - _indicatoWidth) * 0.5f) + self.fingerOffset.x);
     
-    // Work out the y offset of the handle
+    // 计算指示器y轴的偏移量
     UIEdgeInsets contentInset = _scrollView.contentInset;
     CGPoint contentOffset     = _scrollView.contentOffset;
     CGSize contentSize        = _scrollView.contentSize;
@@ -299,7 +326,7 @@ indicatoTintColor = _indicatoTintColor;
     CGFloat scrollProgress = (contentOffset.y + contentInset.top) / scrollableHeight;
     indicatoFrame.origin.y = (frame.size.height - indicatoFrame.size.height) * scrollProgress;
     
-    // If the scroll view expanded beyond its scrollable range, shrink the handle to match the rubber band effect
+    // 如果滚动视图扩展超出其滚动的范围，缩小处理指示器
     if (contentOffset.y < -contentInset.top) {
         // 顶部
         indicatoFrame.size.height -= (-contentOffset.y - contentInset.top);
@@ -368,7 +395,7 @@ indicatoTintColor = _indicatoTintColor;
     CGRect indicatoFrame = self.indicatoView.frame;
     if (touchPoint.y > (indicatoFrame.origin.y - 20) &&
         touchPoint.y < indicatoFrame.origin.y + (indicatoFrame.size.height + 20)) {
-        self.offsetY = (touchPoint.y - indicatoFrame.origin.y);
+        self.fingerOffset = CGPointMake(self.fingerOffset.x, (touchPoint.y - indicatoFrame.origin.y));
         return;
     }
     
@@ -378,7 +405,7 @@ indicatoTintColor = _indicatoTintColor;
     destinationOffsetY = MAX(0.0f, destinationOffsetY);
     destinationOffsetY = MIN(self.frame.size.height - halfHeight, destinationOffsetY);
     
-    self.offsetY = touchPoint.y - destinationOffsetY;
+    self.fingerOffset = CGPointMake(self.fingerOffset.x, touchPoint.y - destinationOffsetY);
     indicatoFrame.origin.y = destinationOffsetY;
     
     [UIView animateWithDuration:0.2
@@ -422,23 +449,25 @@ indicatoTintColor = _indicatoTintColor;
     CGFloat minY = 0.0;
     CGFloat maxY = trackRect.size.height - indicatoRect.size.height;
     
+    CGFloat offsetY = self.fingerOffset.y;
+    
     // 更新y值加上上一次的偏移量
     delta = indicatoRect.origin.y;
-    indicatoRect.origin.y = touchPoint.y - _offsetY;
+    indicatoRect.origin.y = touchPoint.y - offsetY;
     
     // 当按住指示器时，调整y轴的偏移量，防止超出边界
     if (indicatoRect.origin.y < minY) {
-        _offsetY += indicatoRect.origin.y;
-        _offsetY = MAX(minY, _offsetY);
+        offsetY += indicatoRect.origin.y;
+        offsetY = MAX(minY, offsetY);
         indicatoRect.origin.y = minY;
     }
     else if (indicatoRect.origin.y > maxY) {
         CGFloat indicatoOverflow = CGRectGetMaxY(indicatoRect) - trackRect.size.height;
-        _offsetY += indicatoOverflow;
-        _offsetY = MIN(_offsetY, indicatoRect.size.height);
+        offsetY += indicatoOverflow;
+        offsetY = MIN(offsetY, indicatoRect.size.height);
         indicatoRect.origin.y = MIN(indicatoRect.origin.y, maxY);
     }
-    
+    self.fingerOffset = CGPointMake(self.fingerOffset.x, offsetY);
     _indicatoView.frame = indicatoRect;
     delta -= indicatoRect.origin.y;
     delta = fabs(delta); // 绝对值
@@ -553,6 +582,11 @@ indicatoTintColor = _indicatoTintColor;
     if (!scrollIndicatoView) {
         scrollIndicatoView = [[OSScrollIndicatoView alloc] initWithIndicatoStyle:OSScrollIndicatoStyleDefault];
         [self setScrollIndicatoView:scrollIndicatoView];
+        [self hockSelector:@selector(setSeparatorInset:) swizzlingSelector:@selector(setOs_separatorInset:)];
+        if ([self xy_canSetOs_separatorInset]) {
+            UITableView *tableView = (UITableView *)self;
+            tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
+        }
     }
     return scrollIndicatoView;
 }
@@ -583,4 +617,151 @@ indicatoTintColor = _indicatoTintColor;
     layoutMargins.right += offset;
     return layoutMargins;
 }
+
+- (Class)xy_baseClassToSwizzling {
+    if ([self isKindOfClass:[UITableView class]]) {
+        return [UITableView class];
+    }
+    if ([self isKindOfClass:[UIScrollView class]]) {
+        return [UIScrollView class];
+    }
+    return nil;
+}
+
+- (void)setOs_separatorInset:(UIEdgeInsets)separatorInset {
+    if (![self xy_canSetOs_separatorInset]) {
+        return;
+    }
+    UIEdgeInsets separatorInset_ = ((UITableView *)self).separatorInset;
+    [self adjustedTableViewSeparatorInsetForInset:separatorInset_];
+}
+
+- (BOOL)xy_canSetOs_separatorInset {
+    if ([self isKindOfClass:[UITableView class]]) {
+        return YES;
+    }
+    return NO;
+}
+
+@end
+
+
+@implementation _SwizzlingObject
+
+- (NSString *)description {
+    
+    NSDictionary *descriptionDict = @{@"swizzlingClass": self.swizzlingClass,
+                                      @"orginSelector": NSStringFromSelector(self.orginSelector),
+                                      @"swizzlingImplPointer": self.swizzlingImplPointer};
+    
+    return [descriptionDict description];
+}
+
+@end
+
+@implementation NSObject (SwizzlingExtend)
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark - Method swizzling
+////////////////////////////////////////////////////////////////////////
+
++ (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
+    
+}
+
+- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
+    
+    // 本类未实现则return
+    if (![self respondsToSelector:orginSelector]) {
+        return;
+    }
+    
+    NSLog(@"%@", self.implementationDictionary);
+    
+    for (_SwizzlingObject *implObject in self.implementationDictionary.allValues) {
+        // 确保setImplementation 在UITableView or UICollectionView只调用一次, 也就是每个方法的指针只存储一次
+        if (orginSelector == implObject.orginSelector && [self isKindOfClass:implObject.swizzlingClass]) {
+            return;
+        }
+    }
+    
+    Class baseClas = [self xy_baseClassToSwizzling];
+    ImplementationKey key = xy_getImplementationKey(baseClas, orginSelector);
+    _SwizzlingObject *swizzleObjcet = [self.implementationDictionary objectForKey:key];
+    NSValue *implValue = swizzleObjcet.swizzlingImplPointer;
+    
+    // 如果该类的实现已经存在，就return
+    if (implValue || !key || !baseClas) {
+        return;
+    }
+    
+    // 注入额外的实现
+    Method method = class_getInstanceMethod(baseClas, orginSelector);
+    // 设置这个方法的实现
+    IMP newImpl = method_setImplementation(method, (IMP)xy_orginalImplementation);
+    
+    // 将新实现保存到implementationDictionary中
+    swizzleObjcet = [_SwizzlingObject new];
+    swizzleObjcet.swizzlingClass = baseClas;
+    swizzleObjcet.orginSelector = orginSelector;
+    swizzleObjcet.swizzlingImplPointer = [NSValue valueWithPointer:newImpl];
+    swizzleObjcet.swizzlingSelector = swizzlingSelector;
+    [self.implementationDictionary setObject:swizzleObjcet forKey:key];
+}
+
+/// 根据类名和方法，拼接字符串，作为implementationDictionary的key
+NSString * xy_getImplementationKey(Class clas, SEL selector) {
+    if (clas == nil || selector == nil) {
+        return nil;
+    }
+    
+    NSString *className = NSStringFromClass(clas);
+    NSString *selectorName = NSStringFromSelector(selector);
+    return [NSString stringWithFormat:@"%@_%@", className, selectorName];
+}
+
+// 对原方法的实现进行加工
+void xy_orginalImplementation(id self, SEL _cmd) {
+    
+    Class baseCls = [self xy_baseClassToSwizzling];
+    ImplementationKey key = xy_getImplementationKey(baseCls, _cmd);
+    _SwizzlingObject *swizzleObject = [[self implementationDictionary] objectForKey:key];
+    NSValue *implValue = swizzleObject.swizzlingImplPointer;
+    
+    // 获取原方法的实现
+    IMP impPointer = [implValue pointerValue];
+    
+    // 执行swizzing
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    SEL swizzlingSelector = swizzleObject.swizzlingSelector;
+    if ([self respondsToSelector:swizzlingSelector]) {
+        [self performSelector:swizzlingSelector];
+    }
+#pragma clang diagnostic pop
+    
+    // 执行原实现
+    if (impPointer) {
+        ((void(*)(id, SEL))impPointer)(self, _cmd);
+    }
+}
++ (NSMutableDictionary *)implementationDictionary {
+    static NSMutableDictionary *table = nil;
+    table = objc_getAssociatedObject(self, _cmd);
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        table = [NSMutableDictionary dictionary];
+        objc_setAssociatedObject(self, _cmd, table, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    });
+    return table;
+}
+
+- (NSMutableDictionary<ImplementationKey, _SwizzlingObject *> *)implementationDictionary {
+    return self.class.implementationDictionary;
+}
+
+- (Class)xy_baseClassToSwizzling {
+    return [self class];
+}
+
 @end

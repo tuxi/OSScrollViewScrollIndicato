@@ -20,12 +20,7 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleDefault;
-    
-    self.tableView.separatorInset = [self.tableView adjustedTableViewSeparatorInsetForInset:self.tableView.separatorInset];
-    
-    self.tableView.backgroundColor = [UIColor whiteColor];
-    
-    
+
 }
 
 
@@ -35,7 +30,7 @@
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 100;
+    return 10000;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
