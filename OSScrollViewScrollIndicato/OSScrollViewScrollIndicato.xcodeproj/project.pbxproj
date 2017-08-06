@@ -456,7 +456,7 @@
 				DEVELOPMENT_TEAM = NKW67GFDHM;
 				INFOPLIST_FILE = OSScrollViewScrollIndicato/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ossey.OSScrollViewScrollIndicato;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Ossey.OSScrollViewScrollIndicato;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -468,7 +468,7 @@
 				DEVELOPMENT_TEAM = NKW67GFDHM;
 				INFOPLIST_FILE = OSScrollViewScrollIndicato/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ossey.OSScrollViewScrollIndicato;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Ossey.OSScrollViewScrollIndicato;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -542,6 +542,7 @@
 				180CEC8D1F361C2300A04069 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		180CEC8E1F361C2300A04069 /* Build configuration list for PBXNativeTarget "OSScrollViewScrollIndicatoTests" */ = {
 			isa = XCConfigurationList;
@@ -550,6 +551,7 @@
 				180CEC901F361C2300A04069 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		180CEC911F361C2300A04069 /* Build configuration list for PBXNativeTarget "OSScrollViewScrollIndicatoUITests" */ = {
 			isa = XCConfigurationList;
@@ -558,6 +560,7 @@
 				180CEC931F361C2300A04069 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
