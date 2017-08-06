@@ -326,6 +326,16 @@ indicatoTintColor = _indicatoTintColor;
     CGFloat scrollProgress = (contentOffset.y + contentInset.top) / scrollableHeight;
     indicatoFrame.origin.y = (frame.size.height - indicatoFrame.size.height) * scrollProgress;
     
+    void (^tapticBlock)() = ^{
+        // 到达边缘时触发taptic反馈
+#ifdef __IPHONE_10_0
+        [_feedbackGenerator impactOccurred];
+#endif
+        
+    };
+    if (contentOffset.y == -contentInset.top || contentOffset.y + scrollViewFrame.size.height == contentSize.height + contentInset.bottom) {
+        tapticBlock();
+    }
     // 如果滚动视图扩展超出其滚动的范围，缩小处理指示器
     if (contentOffset.y < -contentInset.top) {
         // 顶部
