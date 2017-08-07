@@ -10,7 +10,8 @@
 
 typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
     OSScrollIndicatoStyleDefault,
-    OSScrollIndicatoStyleDark
+    OSScrollIndicatoStyleDark,
+    OSScrollIndicatoStyleCustom
 };
 
 @interface OSScrollIndicatoView : UIView

@@ -19,7 +19,7 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleDefault;
+    self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
 
 }
 

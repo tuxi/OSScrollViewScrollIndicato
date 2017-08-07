@@ -56,8 +56,8 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 
 @property (nonatomic, weak) UIScrollView *scrollView;
 @property (nonatomic, assign) BOOL userHidden;
-@property (nonatomic, strong) UIImageView *trackView;
-@property (nonatomic, strong) UIImageView *indicatoView;
+@property (nonatomic, weak) UIImageView *trackView;
+@property (nonatomic, weak) UIImageView *indicatoView;
 @property (nonatomic, assign) BOOL dragging;
 /// 手指中心的偏移量
 @property (nonatomic, assign) CGPoint fingerOffset;
@@ -101,9 +101,10 @@ indicatoTintColor = _indicatoTintColor;
     return self;
 }
 
+
 - (void)__setup {
-    _trackWidth = 2.0;
-    _indicatoWidth = 4.0;
+//    _trackWidth = 2.0;
+//    _indicatoWidth = 4.0;
     _edgeInset = 7.5;
     _indicatoMinimiumHeight = 64.0;
     _minimumContentHeightScale = 5.0;
@@ -111,26 +112,42 @@ indicatoTintColor = _indicatoTintColor;
 #ifdef __IPHONE_10_0
     _feedbackGenerator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
 #endif
+    self.backgroundColor = [UIColor clearColor];
 }
 
-- (void)__setupUI {
-    if (self.trackView || self.indicatoView) {
+- (CGFloat)trackWidth {
+    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
+        if (self.dragging) {
+            return _trackWidth = OSScrollIndicatoViewWidth;
+        }
+    }
+    return _trackWidth = 2.0;
+}
+
+- (CGFloat)indicatoWidth {
+    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
+        if (self.dragging) {
+            return _indicatoWidth = OSScrollIndicatoViewWidth-6;
+        }
+    }
+    return _indicatoWidth = 4.0;
+}
+
+- (void)setDragging:(BOOL)dragging {
+    if (_dragging == dragging) {
         return;
     }
+    _dragging = dragging;
     
-    self.backgroundColor = [UIColor clearColor];
-    
-    self.trackView = [[UIImageView alloc] initWithImage:[[self class] verticalCapsuleImageWithWidth:self.trackWidth]];
-    [self addSubview:self.trackView];
-    self.indicatoView = [[UIImageView alloc] initWithImage:[[self class] verticalCapsuleImageWithWidth:self.indicatoWidth]];
-    [self addSubview:self.indicatoView];
-    
-    [self setIndicatoStyle:self.indicatoStyle];
+    self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
+    self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
+    [self setNeedsLayout];
 }
 
 - (void)willMoveToSuperview:(UIView *)newSuperview {
     [super willMoveToSuperview:newSuperview];
-    [self __setupUI];
+    // 初始化trackView 和 indicatoView
+    [self setIndicatoStyle:self.indicatoStyle];
 }
 
 - (void)setIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle {
@@ -149,6 +166,7 @@ indicatoTintColor = _indicatoTintColor;
             break;
     }
     self.trackView.tintColor = [UIColor colorWithWhite:whiteColor alpha:alpha];
+    self.indicatoView.tintColor = [UIColor colorWithWhite:0.5 alpha:1.0];
 }
 
 - (void)setScrollView:(UIScrollView *)scrollView {
@@ -203,7 +221,7 @@ indicatoTintColor = _indicatoTintColor;
     CGRect fromRect = self.frame;
     CGRect toRect = self.frame;
     
-    CGFloat widestElement = MAX(_trackWidth, _indicatoWidth);
+    CGFloat widestElement = MAX(self.trackWidth, self.indicatoWidth);
     CGFloat indicatoOffset = fromRect.origin.x + _edgeInset + widestElement * 2.0;
     
     if (hidden == NO) {
@@ -298,25 +316,35 @@ indicatoTintColor = _indicatoTintColor;
     
     CGRect frame = self.frame;
     
-    // trackView的frame
+    // 更新trackView的frame
     CGRect trackFrame = CGRectZero;
-    trackFrame.size.width = _trackWidth;
+    trackFrame.size.width = self.trackWidth;
     trackFrame.size.height = frame.size.height;
-    trackFrame.origin.x  = ceilf(((frame.size.width - _trackWidth) * 0.5) + self.fingerOffset.x);
+    trackFrame.origin.x  = frame.size.width == self.trackWidth ? 0 : ceilf(((frame.size.width - self.trackWidth) * 0.5) + self.fingerOffset.x);
     self.trackView.frame = CGRectIntegral(trackFrame);
     
-    // Don't handle automatic layout when dragging; we'll do that manually elsewhere
+    /*
+     更新indicatoView的宽度和中心点x值和trackView对其，
+     注意:拖动时不要处理indicatoView的宽度以外的布局及frame，这里只需要更新下它的宽度
+     */
+    CGRect indicatoFrame = self.indicatoView.frame;
+    indicatoFrame.size.width = self.indicatoWidth;
+    self.indicatoView.frame = indicatoFrame;
+    CGPoint indicatoCenter = self.indicatoView.center;
+    indicatoCenter.x = self.trackView.center.x;
+    self.indicatoView.center = indicatoCenter;
+    
     if (self.dragging || self.disabled) {
         return;
     }
     
-    // 指示器的frame
-    CGRect indicatoFrame = CGRectZero;
-    indicatoFrame.size.width = _indicatoWidth;
+    // 更新indicatoView的frame y值
+    indicatoFrame = CGRectZero;
+    indicatoFrame.size.width = self.indicatoWidth;
     indicatoFrame.size.height = [self heightOfIndicatoForContentSize];
-    indicatoFrame.origin.x = ceilf(((frame.size.width - _indicatoWidth) * 0.5f) + self.fingerOffset.x);
+    indicatoFrame.origin.x = ceilf(((frame.size.width - self.indicatoWidth) * 0.5f) + self.fingerOffset.x);
     
-    // 计算指示器y轴的偏移量
+    // 计算indicatoViewy轴的偏移量
     UIEdgeInsets contentInset = _scrollView.contentInset;
     CGPoint contentOffset     = _scrollView.contentOffset;
     CGSize contentSize        = _scrollView.contentSize;
@@ -340,14 +368,14 @@ indicatoTintColor = _indicatoTintColor;
     if (contentOffset.y < -contentInset.top) {
         // 顶部
         indicatoFrame.size.height -= (-contentOffset.y - contentInset.top);
-        indicatoFrame.size.height = MAX(indicatoFrame.size.height, (_trackWidth * 2 + 2));
+        indicatoFrame.size.height = MAX(indicatoFrame.size.height, (self.trackWidth * 2 + 2));
     }
     else if (contentOffset.y + scrollViewFrame.size.height > contentSize.height + contentInset.bottom) {
         // 底部
         CGFloat adjustedContentOffset = contentOffset.y + scrollViewFrame.size.height;
         CGFloat delta = adjustedContentOffset - (contentSize.height + contentInset.bottom);
         indicatoFrame.size.height -= delta;
-        indicatoFrame.size.height = MAX(indicatoFrame.size.height, (_trackWidth * 2 + 2));
+        indicatoFrame.size.height = MAX(indicatoFrame.size.height, (self.trackWidth * 2 + 2));
         indicatoFrame.origin.y = frame.size.height - indicatoFrame.size.height;
     }
     
@@ -548,6 +576,31 @@ indicatoTintColor = _indicatoTintColor;
 - (UIColor *)indicatoTintColor {
     return self.indicatoView.tintColor;
 }
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark - get
+////////////////////////////////////////////////////////////////////////
+
+- (UIImageView *)trackView {
+    if (!_trackView) {
+        UIImageView *trackView = [[UIImageView alloc] initWithImage:[[self class] verticalCapsuleImageWithWidth:self.trackWidth]];
+        _trackView = trackView;
+        trackView.accessibilityIdentifier = NSStringFromSelector(_cmd);
+        [self addSubview:_trackView];
+    }
+    return _trackView;
+}
+
+- (UIImageView *)indicatoView {
+    if (!_indicatoView) {
+        UIImageView *indicatoView = [[UIImageView alloc] initWithImage:[[self class] verticalCapsuleImageWithWidth:self.indicatoWidth]];
+        _indicatoView = indicatoView;
+        indicatoView.accessibilityIdentifier = NSStringFromSelector(_cmd);
+        [self addSubview:_indicatoView];
+    }
+    return _indicatoView;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////
