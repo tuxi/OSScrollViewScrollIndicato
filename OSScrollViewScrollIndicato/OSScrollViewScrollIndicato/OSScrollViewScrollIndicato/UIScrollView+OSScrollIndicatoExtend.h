@@ -27,7 +27,7 @@ typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
 @property (nonatomic, strong) UIColor *indicatoTintColor;
 /** 指示器的宽度，默认为4.0，当OSScrollIndicatoStyleCustom时，宽度比父控件小6 */
 @property (nonatomic, assign) CGFloat indicatoWidth;
-/** 指示器最小高度，默认为64.0 */
+/** 指示器最小高度，默认为30.0 */
 @property (nonatomic, assign) CGFloat indicatoMinimiumHeight;
 /** 用户是否正在拖动指示器 */
 @property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;

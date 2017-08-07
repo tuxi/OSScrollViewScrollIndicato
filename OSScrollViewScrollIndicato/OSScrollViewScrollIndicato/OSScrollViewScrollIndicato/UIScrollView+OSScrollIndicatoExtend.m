@@ -9,12 +9,25 @@
 #import "UIScrollView+OSScrollIndicatoExtend.h"
 #import <objc/runtime.h>
 
+/**
+ 此结构体用于保存初始化OSScrollIndicatoView时，scrollView的某些属性值，
+ 当scrollView移除OSScrollIndicatoView时，恢复scrollView之前的属性值
+ */
 struct OSScrollIndicatoScrollViewState {
     BOOL showsVerticalScrollIndicator;
+    BOOL scrollEnabled;
+};
+
+typedef NS_ENUM(NSInteger, SwizzlingOption) {
+    SwizzlingOptionBefore,
+    SwizzlingOptionAfter
 };
 
 typedef NSString * ImplementationKey NS_EXTENSIBLE_STRING_ENUM;
 static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewContext;
+/**
+ 根据OSScrollIndicatoViewWidth确定self及子控件的宽度
+ */
 static CGFloat OSScrollIndicatoViewWidth = 20.0;
 
 typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
@@ -28,6 +41,7 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 @property (nonatomic) SEL orginSelector;
 @property (nonatomic) SEL swizzlingSelector;
 @property (nonatomic) NSValue *swizzlingImplPointer;
+@property (nonatomic) SwizzlingOption swizzlingOption;
 
 @end
 
@@ -39,6 +53,7 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 
 - (Class)xy_baseClassToSwizzling;
 - (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector;
+- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector swizzingOption:(SwizzlingOption)swizzingOption;
 
 @end
 
@@ -70,7 +85,7 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 
 @implementation OSScrollIndicatoView
 {
-    OSScrollIndicatoScrollViewState _scrollViewSatate;
+    OSScrollIndicatoScrollViewState _scrollViewSate;
 }
 
 @synthesize
@@ -103,7 +118,7 @@ indicatoTintColor = _indicatoTintColor;
 
 
 - (void)__setup {
-    _indicatoMinimiumHeight = 64.0;
+    _indicatoMinimiumHeight = 30.0;
     _minimumContentHeightScale = 0.98;
     _contentEdgeInsets = UIEdgeInsetsMake(2.0, 0.0, 2.0, 5.0);
 #ifdef __IPHONE_10_0
@@ -112,44 +127,6 @@ indicatoTintColor = _indicatoTintColor;
     self.backgroundColor = [UIColor clearColor];
 }
 
-- (CGFloat)trackWidth {
-    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
-        if (self.isDragging) {
-            return _trackWidth = OSScrollIndicatoViewWidth;
-        }
-    }
-    return _trackWidth = 2.0;
-}
-
-- (CGFloat)indicatoWidth {
-    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
-        if (self.isDragging) {
-            return _indicatoWidth = OSScrollIndicatoViewWidth-6;
-        }
-    }
-    return _indicatoWidth = 4.0;
-}
-
-- (void)setDragging:(BOOL)dragging {
-    if (_dragging == dragging) {
-        return;
-    }
-    _dragging = dragging;
-    
-    void (^block)() = ^{
-        self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
-        self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
-        [self setNeedsLayout];
-    };
-    
-    if (dragging == NO) {
-        [UIView animateWithDuration:2.0 animations:block];
-    }
-    else {
-        block();
-    }
-    
-}
 
 
 - (void)willMoveToSuperview:(UIView *)newSuperview {
@@ -158,7 +135,26 @@ indicatoTintColor = _indicatoTintColor;
     [self setIndicatoStyle:self.indicatoStyle];
 }
 
+- (void)removeFromSuperview {
+    
+    [self restoreScrollView:_scrollView];
+    [super removeFromSuperview];
+        _scrollView.scrollIndicatoView = nil;
+    _scrollView = nil;
+    
+}
+
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark - Public methods
+////////////////////////////////////////////////////////////////////////
+
 - (void)setIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle {
+    
+    if (indicatoStyle == _indicatoStyle) {
+        return;
+    }
+    
     _indicatoStyle = indicatoStyle;
     
     CGFloat whiteColor = 0.3;
@@ -182,12 +178,12 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     
+    // 移除旧的scrollView的kvo
     [self restoreScrollView:_scrollView];
     
     _scrollView = scrollView;
     
-    [self configScrollView:_scrollView];
-    
+    [self setupScrollView:scrollView];
     [scrollView addSubview:self];
     
     scrollView.scrollIndicatoView = self;
@@ -195,14 +191,6 @@ indicatoTintColor = _indicatoTintColor;
     [self layoutInScrollView];
 }
 
-- (void)removeFromSuperview {
-    
-    [self restoreScrollView:_scrollView];
-    [super removeFromSuperview];
-    _scrollView.scrollIndicatoView = nil;
-    _scrollView = nil;
-    
-}
 
 - (void)setHidden:(BOOL)hidden {
     self.userHidden = hidden;
@@ -254,19 +242,21 @@ indicatoTintColor = _indicatoTintColor;
                      }];
 }
 
+////////////////////////////////////////////////////////////////////////
+#pragma mark - Private methods
+////////////////////////////////////////////////////////////////////////
 
-- (void)configScrollView:(UIScrollView *)scrollView {
+- (void)setupScrollView:(UIScrollView *)scrollView {
     if (scrollView == nil) {
         return;
     }
-    
     // 将self.scrollView的状态保存起来
-    _scrollViewSatate.showsVerticalScrollIndicator = self.scrollView.showsVerticalScrollIndicator;
+    _scrollViewSate.showsVerticalScrollIndicator = self.scrollView.showsVerticalScrollIndicator;
+    _scrollViewSate.scrollEnabled = self.scrollView.scrollEnabled;
     self.scrollView.showsVerticalScrollIndicator = NO;
     
     [scrollView addObserver:self forKeyPath:NSStringFromSelector(@selector(contentSize)) options:NSKeyValueObservingOptionNew context:OSScrollIndicatoScrollViewContext];
     [scrollView addObserver:self forKeyPath:NSStringFromSelector(@selector(contentOffset)) options:NSKeyValueObservingOptionNew context:OSScrollIndicatoScrollViewContext];
-    
 }
 
 - (void)restoreScrollView:(UIScrollView *)scrollView {
@@ -274,10 +264,20 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     
-    scrollView.showsVerticalScrollIndicator = _scrollView.showsVerticalScrollIndicator;
+    // 恢复scrollView的showsVerticalScrollIndicator
+    scrollView.showsVerticalScrollIndicator = _scrollViewSate.showsVerticalScrollIndicator;
+    scrollView.scrollEnabled = _scrollViewSate.scrollEnabled;
     
-    [scrollView removeObserver:self forKeyPath:NSStringFromSelector(@selector(contentOffset))];
-    [scrollView removeObserver:self forKeyPath:NSStringFromSelector(@selector(contentSize))];
+    @try {
+        [scrollView removeObserver:self forKeyPath:NSStringFromSelector(@selector(contentSize)) context:OSScrollIndicatoScrollViewContext];
+        [scrollView removeObserver:self forKeyPath:NSStringFromSelector(@selector(contentOffset)) context:OSScrollIndicatoScrollViewContext];
+    } @catch (NSException *exception) {
+        
+    } @finally {
+        
+    }
+    
+    
 }
 
 - (void)updateStateForScrollView {
@@ -294,6 +294,10 @@ indicatoTintColor = _indicatoTintColor;
     [self setHidden:self.disabled || self.userHidden animated:NO];
     
 }
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark - Layout
+////////////////////////////////////////////////////////////////////////
 
 - (void)layoutInScrollView {
     
@@ -405,7 +409,7 @@ indicatoTintColor = _indicatoTintColor;
 }
 
 ////////////////////////////////////////////////////////////////////////
-#pragma mark -
+#pragma mark - Observe
 ////////////////////////////////////////////////////////////////////////
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
@@ -585,6 +589,30 @@ indicatoTintColor = _indicatoTintColor;
     return self.indicatoView.tintColor;
 }
 
+
+
+- (void)setDragging:(BOOL)dragging {
+    if (_dragging == dragging) {
+        return;
+    }
+    _dragging = dragging;
+    
+    void (^block)() = ^{
+        self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
+        self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
+        [self setNeedsLayout];
+    };
+    
+    if (dragging == NO) {
+        [UIView animateWithDuration:2.0 animations:block];
+    }
+    else {
+        block();
+    }
+    
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 #pragma mark - get
 ////////////////////////////////////////////////////////////////////////
@@ -609,7 +637,23 @@ indicatoTintColor = _indicatoTintColor;
     return _indicatoView;
 }
 
+- (CGFloat)trackWidth {
+    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
+        if (self.isDragging) {
+            return _trackWidth = OSScrollIndicatoViewWidth;
+        }
+    }
+    return _trackWidth = 2.0;
+}
 
+- (CGFloat)indicatoWidth {
+    if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
+        if (self.isDragging) {
+            return _indicatoWidth = OSScrollIndicatoViewWidth-6;
+        }
+    }
+    return _indicatoWidth = 4.0;
+}
 
 ////////////////////////////////////////////////////////////////////////
 #pragma mark -
@@ -631,12 +675,9 @@ indicatoTintColor = _indicatoTintColor;
     return image;
 }
 
-////////////////////////////////////////////////////////////////////////
-#pragma mark -
-////////////////////////////////////////////////////////////////////////
-
 - (void)dealloc {
-    [self restoreScrollView:_scrollView];
+    NSLog(@"%s", __func__);
+    
 }
 
 @end
@@ -653,8 +694,12 @@ indicatoTintColor = _indicatoTintColor;
     if (!scrollIndicatoView) {
         scrollIndicatoView = [[OSScrollIndicatoView alloc] initWithIndicatoStyle:OSScrollIndicatoStyleDefault];
         [self setScrollIndicatoView:scrollIndicatoView];
-        [self hockSelector:@selector(setSeparatorInset:) swizzlingSelector:@selector(setOs_separatorInset:)];
+        if ([self xy_canRemoveScrollIndicatoView]) {
+            // mark: removeScrollIndicatoView 方法hock到removeFromSuperview中，但是removeScrollIndicatoView中的释放工作要在removeFromSuperview之后执行，不然会挂掉的，所有这里使用SwizzlingOptionAfter
+            [self hockSelector:@selector(removeFromSuperview) swizzlingSelector:@selector(removeScrollIndicatoView) swizzingOption:SwizzlingOptionAfter];
+        }
         if ([self xy_canSetOs_separatorInset]) {
+            [self hockSelector:@selector(setSeparatorInset:) swizzlingSelector:@selector(setOs_separatorInset:)];
             UITableView *tableView = (UITableView *)self;
             tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
         }
@@ -714,6 +759,13 @@ indicatoTintColor = _indicatoTintColor;
     return NO;
 }
 
+- (BOOL)xy_canRemoveScrollIndicatoView {
+    if ([self respondsToSelector:@selector(removeScrollIndicatoView)]) {
+        return YES;
+    }
+    return NO;
+}
+
 @end
 
 
@@ -728,6 +780,10 @@ indicatoTintColor = _indicatoTintColor;
     return [descriptionDict description];
 }
 
+- (SwizzlingOption)swizzlingOption {
+    return _swizzlingOption ?: SwizzlingOptionBefore;
+}
+
 @end
 
 @implementation NSObject (SwizzlingExtend)
@@ -736,12 +792,7 @@ indicatoTintColor = _indicatoTintColor;
 #pragma mark - Method swizzling
 ////////////////////////////////////////////////////////////////////////
 
-+ (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
-    
-}
-
-- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
-    
+- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector swizzingOption:(SwizzlingOption)swizzingOption {
     // 本类未实现则return
     if (![self respondsToSelector:orginSelector]) {
         return;
@@ -777,7 +828,13 @@ indicatoTintColor = _indicatoTintColor;
     swizzleObjcet.orginSelector = orginSelector;
     swizzleObjcet.swizzlingImplPointer = [NSValue valueWithPointer:newImpl];
     swizzleObjcet.swizzlingSelector = swizzlingSelector;
+    swizzleObjcet.swizzlingOption = swizzingOption;
     [self.implementationDictionary setObject:swizzleObjcet forKey:key];
+}
+
+- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
+    [self hockSelector:orginSelector swizzlingSelector:swizzlingSelector swizzingOption:SwizzlingOptionBefore];
+    
 }
 
 /// 根据类名和方法，拼接字符串，作为implementationDictionary的key
@@ -802,19 +859,29 @@ void xy_orginalImplementation(id self, SEL _cmd) {
     // 获取原方法的实现
     IMP impPointer = [implValue pointerValue];
     
-    // 执行swizzing
+    dispatch_block_t block = ^{
+        // 执行swizzing
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    SEL swizzlingSelector = swizzleObject.swizzlingSelector;
-    if ([self respondsToSelector:swizzlingSelector]) {
-        [self performSelector:swizzlingSelector];
-    }
+        SEL swizzlingSelector = swizzleObject.swizzlingSelector;
+        if ([self respondsToSelector:swizzlingSelector]) {
+            [self performSelector:swizzlingSelector];
+        }
 #pragma clang diagnostic pop
+    };
     
+    if (swizzleObject.swizzlingOption == SwizzlingOptionBefore) {
+        block();
+    }
     // 执行原实现
     if (impPointer) {
         ((void(*)(id, SEL))impPointer)(self, _cmd);
     }
+    
+    if (swizzleObject.swizzlingOption == SwizzlingOptionAfter) {
+        block();
+    }
+    
 }
 + (NSMutableDictionary *)implementationDictionary {
     static NSMutableDictionary *table = nil;
