@@ -139,10 +139,40 @@ indicatoTintColor = _indicatoTintColor;
     }
     _dragging = dragging;
     
-    self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
-    self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
-    [self setNeedsLayout];
+    void (^block)() = ^{
+        self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
+        self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
+//        [self setNeedsLayout];
+        CGRect frame = self.frame;
+        
+        // 更新trackView的frame
+        CGRect trackFrame = CGRectZero;
+        trackFrame.size.width = self.trackWidth;
+        trackFrame.size.height = frame.size.height;
+        trackFrame.origin.x  = frame.size.width == self.trackWidth ? 0 : ceilf(((frame.size.width - self.trackWidth) * 0.5) + self.fingerOffset.x);
+        self.trackView.frame = CGRectIntegral(trackFrame);
+        
+        /*
+         更新indicatoView的宽度和中心点x值和trackView对其，
+         注意:拖动时不要处理indicatoView的宽度以外的布局及frame，这里只需要更新下它的宽度
+         */
+        CGRect indicatoFrame = self.indicatoView.frame;
+        indicatoFrame.size.width = self.indicatoWidth;
+        self.indicatoView.frame = indicatoFrame;
+        CGPoint indicatoCenter = self.indicatoView.center;
+        indicatoCenter.x = self.trackView.center.x;
+        self.indicatoView.center = indicatoCenter;
+    };
+    
+    if (dragging == NO) {
+        [UIView animateWithDuration:0.8 animations:block];
+    }
+    else {
+        block();
+    }
+    
 }
+
 
 - (void)willMoveToSuperview:(UIView *)newSuperview {
     [super willMoveToSuperview:newSuperview];
