@@ -49,19 +49,20 @@
 }
 
 
-//- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-//    
-//    // 测试添加和移除时，是否影响scrollView是否可正常显示和使用
-//    if (scrollView.contentOffset.y > 1000) {
-//        [scrollView removeScrollIndicatoView];
-//    }
-//    else {
-//        self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
-//    }
-//}
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    
+    // 测试添加和移除时，是否影响scrollView是否可正常显示和使用
+    if (scrollView.contentOffset.y > 1000) {
+        [scrollView removeScrollIndicatoView];
+    }
+    else {
+        self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
+    }
+}
 
 - (void)dealloc {
     NSLog(@"%s", __func__);
+    [self.tableView removeFromSuperview];
 }
 
 @end

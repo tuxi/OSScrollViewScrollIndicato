@@ -709,6 +709,7 @@ indicatoTintColor = _indicatoTintColor;
 
 - (void)removeScrollIndicatoView {
     [self.scrollIndicatoView removeFromSuperview];
+    self.scrollIndicatoView = nil;
 }
 
 - (void)setOs_scrollIndicatoStyle:(OSScrollIndicatoStyle)os_scrollIndicatoStyle {
@@ -765,6 +766,7 @@ indicatoTintColor = _indicatoTintColor;
     }
     return NO;
 }
+
 
 @end
 
