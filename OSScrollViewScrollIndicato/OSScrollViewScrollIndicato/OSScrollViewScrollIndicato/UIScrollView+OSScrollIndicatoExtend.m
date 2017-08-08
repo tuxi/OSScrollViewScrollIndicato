@@ -703,9 +703,27 @@ indicatoTintColor = _indicatoTintColor;
             UITableView *tableView = (UITableView *)self;
             tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
         }
+        
+        if ([self xy_canObserverPrivateDelegateMethods]) {
+            // 减速完成停止滚动，非减速
+            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
+            if ([self respondsToSelector:didEndDeceleratingSEL]) {
+                [self hockSelector:didEndDeceleratingSEL swizzlingSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate) swizzingOption:SwizzlingOptionAfter];
+            }
+            // 拖拽完成停止滚动，非减速
+//            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
+//            if ([self respondsToSelector:didEndDraggingSEL]) {
+//                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration) swizzingOption:SwizzlingOptionAfter];
+//            }
+            
+        }
     }
     return scrollIndicatoView;
 }
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark - 
+////////////////////////////////////////////////////////////////////////
 
 - (void)removeScrollIndicatoView {
     [self.scrollIndicatoView removeFromSuperview];
@@ -718,6 +736,32 @@ indicatoTintColor = _indicatoTintColor;
     self.scrollIndicatoView.scrollView = self;
 
 }
+
+/**
+ UIScrollView在执行 - scrollViewDidEndDecelerating 之前执行此方法，具体根据swizzingOption确定
+ SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
+ scrollView减速完成停止滚动时执行的方法
+ */
+- (void)os_scrollViewDidEndDeceleratingForDelegate {
+    
+}
+
+/**
+ UIScrollView在执行 - _scrollViewDidEndDraggingForDelegateWithDeceleration: 之前执行此方法，具体根据swizzingOption确定
+ SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
+ scrollView滚动完成停止滚动时执行的方法
+ */
+- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration {
+    BOOL res = self.isDecelerating;
+}
+
+- (void)setOs_decelerating:(BOOL)isDecelerating {
+    
+}
+
+////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////
 
 - (OSScrollIndicatoStyle)os_scrollIndicatoStyle {
     return [objc_getAssociatedObject(self, _cmd) boolValue];
@@ -767,6 +811,14 @@ indicatoTintColor = _indicatoTintColor;
     return NO;
 }
 
+- (BOOL)xy_canObserverPrivateDelegateMethods {
+    if ([self isKindOfClass:[UIScrollView class]] ||
+        [self isKindOfClass:[UITableView class]] ||
+        [self isKindOfClass:[UICollectionView class]]) {
+        return YES;
+    }
+    return NO;
+}
 
 @end
 
