@@ -40,8 +40,11 @@ static CGFloat OSScrollIndicatoViewWidth = 20.0;
 @property (nonatomic) SEL swizzlingSelector;
 @property (nonatomic) NSValue *swizzlingImplPointer;
 @property (nonatomic) SwizzlingOption swizzlingOption;
+@property (nonatomic, strong) NSArray *arguments;
+@property (nonatomic, strong) NSInvocation *originalInvocation;
 
 @end
+
 
 #pragma mark *** NSObject (SwizzlingExtend) ***
 
@@ -712,10 +715,10 @@ indicatoTintColor = _indicatoTintColor;
                 [self hockSelector:didEndDeceleratingSEL swizzlingSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate) swizzingOption:SwizzlingOptionAfter];
             }
             // 拖拽完成停止滚动，非减速
-//            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
-//            if ([self respondsToSelector:didEndDraggingSEL]) {
-//                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration) swizzingOption:SwizzlingOptionAfter];
-//            }
+            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
+            if ([self respondsToSelector:didEndDraggingSEL]) {
+                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:) swizzingOption:SwizzlingOptionAfter];
+            }
             
         }
     }
@@ -752,12 +755,8 @@ indicatoTintColor = _indicatoTintColor;
  SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
  scrollView滚动完成停止滚动时执行的方法
  */
-- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration {
+- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
     BOOL res = self.isDecelerating;
-}
-
-- (void)setOs_decelerating:(BOOL)isDecelerating {
-    
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -839,6 +838,7 @@ indicatoTintColor = _indicatoTintColor;
     return _swizzlingOption ?: SwizzlingOptionBefore;
 }
 
+
 @end
 
 @implementation NSObject (SwizzlingExtend)
@@ -874,14 +874,98 @@ indicatoTintColor = _indicatoTintColor;
     
     // 注入额外的实现
     Method method = class_getInstanceMethod(baseClas, orginSelector);
-    // 设置这个方法的实现
-    IMP newImpl = method_setImplementation(method, (IMP)xy_orginalImplementation);
+    
+    // 获取方法的参数类型
+    // 获取方法的参数个数，由于方法中默认有两个隐士参数self 和 _cmd ，所以个数应该减去2
+    unsigned int argumentsCount = method_getNumberOfArguments(method);
+    NSMutableArray *argumentsTypes = @[].mutableCopy;
+    for (unsigned int j = 0; j < argumentsCount; ++j) {
+        char argDst[512] = {};
+        method_getArgumentType(method, j, argDst, 512);
+        
+        NSLog(@"第%u个参数类型为：%s", j, argDst);
+        
+        [argumentsTypes addObject:[NSString stringWithFormat:@"%s", argDst]];
+    }
+    
+    for (NSInteger i = 2; i < [[argumentsTypes mutableCopy] count]; ++i) {
+        // 取出参数对象
+        id obj = argumentsTypes[i];
+        // 判断需要设置的参数是否是NSNull, 如果是就设置为nil
+        if ([obj isKindOfClass:[NSNull class]]) {
+            obj = nil;
+        }
+        // 获取参数类型
+        const char *argumentType = [obj UTF8String] ;
+        
+        // 判断参数类型 根据类型转化数据类型
+        NSString *argumentTypeString = [NSString stringWithUTF8String:argumentType];
+        
+        
+        if ([argumentTypeString isEqualToString:@"@"]) { // id
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"id"];
+        }  else if ([argumentTypeString isEqualToString:@"B"]) { // bool
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"bool"];
+        } else if ([argumentTypeString isEqualToString:@"f"]) { // float
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"float"];
+        } else if ([argumentTypeString isEqualToString:@"d"]) { // double
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"double"];
+        } else if ([argumentTypeString isEqualToString:@"c"]) { // char
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"char"];
+        } else if ([argumentTypeString isEqualToString:@"i"]) { // int
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"int"];
+        } else if ([argumentTypeString isEqualToString:@"I"]) { // unsigned int
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned int"];
+        } else if ([argumentTypeString isEqualToString:@"S"]) { // unsigned short
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned short"];
+        } else if ([argumentTypeString isEqualToString:@"L"]) { // unsigned long
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned long"];
+        } else if ([argumentTypeString isEqualToString:@"s"]) { // shrot
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"shrot"];
+        } else if ([argumentTypeString isEqualToString:@"l"]) { // long
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"long"];
+        } else if ([argumentTypeString isEqualToString:@"q"]) { // long long
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"long long"];
+        } else if ([argumentTypeString isEqualToString:@"C"]) { // unsigned char
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned char"];
+        } else if ([argumentTypeString isEqualToString:@"Q"]) { // unsigned long long
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned long long"];
+        } else if ([argumentTypeString isEqualToString:@"{CGRect={CGPoint=dd}{CGSize=dd}}"]) { // CGRect
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"CGRect"];
+        } else if ([argumentTypeString isEqualToString:@"{UIEdgeInsets=dddd}"]) { // UIEdgeInsets
+            [argumentsTypes replaceObjectAtIndex:i withObject:@"UIEdgeInsets"];
+        }
+        
+    }
+    
+    
+    char returnType[512] = {};
+    method_getReturnType(method, returnType, 512);
+    NSLog(@"返回值类型：%s", returnType);
+
+    
+    IMP newImp = NULL;
+    if (argumentsCount == 2) {
+       newImp = imp_implementationWithBlock(^  (id _self) {
+           
+        });
+    }
+    else if (argumentsCount == 3) {
+        NSString *type = argumentsTypes[2];
+        
+        newImp = imp_implementationWithBlock(^  (id _self, int i) {
+            
+        });
+    }
+    
+    // 设置method这个方法的实现
+    IMP orginImp = method_setImplementation(method, (IMP)xy_orginalImplementation);
     
     // 将新实现保存到implementationDictionary中
     swizzleObjcet = [_SwizzlingObject new];
     swizzleObjcet.swizzlingClass = baseClas;
     swizzleObjcet.orginSelector = orginSelector;
-    swizzleObjcet.swizzlingImplPointer = [NSValue valueWithPointer:newImpl];
+    swizzleObjcet.swizzlingImplPointer = [NSValue valueWithPointer:orginImp];
     swizzleObjcet.swizzlingSelector = swizzlingSelector;
     swizzleObjcet.swizzlingOption = swizzingOption;
     [self.implementationDictionary setObject:swizzleObjcet forKey:key];
@@ -958,3 +1042,4 @@ void xy_orginalImplementation(id self, SEL _cmd) {
 }
 
 @end
+
