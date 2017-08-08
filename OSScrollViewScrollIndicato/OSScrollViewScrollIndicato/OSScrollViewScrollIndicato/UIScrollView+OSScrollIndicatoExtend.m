@@ -13,10 +13,10 @@
  此结构体用于保存初始化OSScrollIndicatoView时，scrollView的某些属性值，
  当scrollView移除OSScrollIndicatoView时，恢复scrollView之前的属性值
  */
-struct OSScrollIndicatoScrollViewState {
+typedef struct {
     BOOL showsVerticalScrollIndicator;
     BOOL scrollEnabled;
-};
+} OSScrollIndicatoScrollViewState;
 
 typedef NS_ENUM(NSInteger, SwizzlingOption) {
     SwizzlingOptionBefore,
@@ -29,8 +29,6 @@ static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewCon
  根据OSScrollIndicatoViewWidth确定self及子控件的宽度
  */
 static CGFloat OSScrollIndicatoViewWidth = 20.0;
-
-typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 
 
 #pragma mark *** _SwizzlingObject ***
@@ -80,13 +78,11 @@ typedef struct OSScrollIndicatoScrollViewState OSScrollIndicatoScrollViewState;
 #ifdef __IPHONE_10_0
 @property (nonatomic, strong) UIImpactFeedbackGenerator *feedbackGenerator;
 #endif
+@property (nonatomic, assign) OSScrollIndicatoScrollViewState scrollViewSate;
 
 @end
 
 @implementation OSScrollIndicatoView
-{
-    OSScrollIndicatoScrollViewState _scrollViewSate;
-}
 
 @synthesize
 trackTintColor = _trackTintColor,
@@ -125,6 +121,10 @@ indicatoTintColor = _indicatoTintColor;
     _feedbackGenerator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
 #endif
     self.backgroundColor = [UIColor clearColor];
+    
+    _scrollViewSate.showsVerticalScrollIndicator = NO;
+    _scrollViewSate.scrollEnabled = NO;
+    
 }
 
 
@@ -257,6 +257,7 @@ indicatoTintColor = _indicatoTintColor;
     
     [scrollView addObserver:self forKeyPath:NSStringFromSelector(@selector(contentSize)) options:NSKeyValueObservingOptionNew context:OSScrollIndicatoScrollViewContext];
     [scrollView addObserver:self forKeyPath:NSStringFromSelector(@selector(contentOffset)) options:NSKeyValueObservingOptionNew context:OSScrollIndicatoScrollViewContext];
+    
 }
 
 - (void)restoreScrollView:(UIScrollView *)scrollView {
