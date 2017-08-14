@@ -31,6 +31,35 @@ static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewCon
 static CGFloat OSScrollIndicatoViewWidth = 20.0;
 
 
+@interface OSScrollIndicatoView : UIView
+
+@property (nonatomic, weak, readonly) UIScrollView *scrollView;
+/** 指示器和trackView顶部和底部距离父控件的边距值，默认顶部为2.0，底部为2.0，右侧为5.0, 左侧暂时无效 */
+@property (nonatomic, assign) UIEdgeInsets contentEdgeInsets;
+/** 指示器所在轨道的主题颜色 */
+@property (nonatomic, strong) UIColor *trackTintColor;
+/** 指示器所在轨道的宽度 默认为2.0, 当OSScrollIndicatoStyleCustom时，宽度与父控件相同*/
+@property (nonatomic, assign) CGFloat trackWidth;
+/** 指示器的主题颜色*/
+@property (nonatomic, strong) UIColor *indicatoTintColor;
+/** 指示器的宽度，默认为4.0，当OSScrollIndicatoStyleCustom时，宽度比父控件小6 */
+@property (nonatomic, assign) CGFloat indicatoWidth;
+/** 指示器最小高度，默认为30.0 */
+@property (nonatomic, assign) CGFloat indicatoMinimiumHeight;
+/** 用户是否正在拖动指示器 */
+@property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;
+/** 指示器显示之前，指示器对比的缩放值, 当contentSize的高度除以scrollView的高度比例值 > minimumContentHeightScale才显示指示器 */
+@property (nonatomic, assign) CGFloat minimumContentHeightScale;
+/** 指示器样式 */
+@property (nonatomic, assign) OSScrollIndicatoStyle indicatoStyle;
+
+
+- (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
+
+- (void)setHidden:(BOOL)hidden animated:(BOOL)animated;
+
+@end
+
 #pragma mark *** _SwizzlingObject ***
 
 @interface _SwizzlingObject : NSObject
@@ -153,6 +182,12 @@ indicatoTintColor = _indicatoTintColor;
 ////////////////////////////////////////////////////////////////////////
 
 - (void)setIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle {
+    
+    if (indicatoStyle == OSScrollIndicatoStyleNone) {
+        [self restoreScrollView:self.scrollView];
+        [self removeFromSuperview];
+        
+    }
     
     if (indicatoStyle == _indicatoStyle) {
         return;
@@ -688,6 +723,17 @@ indicatoTintColor = _indicatoTintColor;
 
 @implementation UIScrollView (OSScrollIndicatoExtend)
 
+- (void)setHiddenIndicato:(BOOL)hiddenIndicato {
+    objc_setAssociatedObject(self, @selector(hiddenIndicato), @(hiddenIndicato), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (self.os_scrollIndicatoStyle != OSScrollIndicatoStyleNone) {
+        self.scrollIndicatoView.hidden = hiddenIndicato;
+    }
+}
+
+- (BOOL)hiddenIndicato {
+    return [objc_getAssociatedObject(self, _cmd) boolValue];
+}
+
 - (void)setScrollIndicatoView:(OSScrollIndicatoView *)scrollIndicatoView {
     objc_setAssociatedObject(self, @selector(scrollIndicatoView), scrollIndicatoView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
@@ -708,19 +754,20 @@ indicatoTintColor = _indicatoTintColor;
             tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
         }
         
-        if ([self xy_canObserverPrivateDelegateMethods]) {
-            // 减速完成停止滚动，非减速
-            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
-            if ([self respondsToSelector:didEndDeceleratingSEL]) {
-                [self hockSelector:didEndDeceleratingSEL swizzlingSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate) swizzingOption:SwizzlingOptionAfter];
-            }
-            // 拖拽完成停止滚动，非减速
-            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
-            if ([self respondsToSelector:didEndDraggingSEL]) {
-                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:) swizzingOption:SwizzlingOptionAfter];
-            }
-            
-        }
+        
+//        if ([self xy_canObserverPrivateDelegateMethods]) {
+//            // 减速完成停止滚动，非减速
+//            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
+//            if ([self respondsToSelector:didEndDeceleratingSEL]) {
+//                [self hockSelector:didEndDeceleratingSEL swizzlingSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate) swizzingOption:SwizzlingOptionAfter];
+//            }
+//            // 拖拽完成停止滚动，非减速
+//            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
+//            if ([self respondsToSelector:didEndDraggingSEL]) {
+//                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:) swizzingOption:SwizzlingOptionAfter];
+//            }
+//            
+//        }
     }
     return scrollIndicatoView;
 }
@@ -741,23 +788,23 @@ indicatoTintColor = _indicatoTintColor;
 
 }
 
-/**
- UIScrollView在执行 - scrollViewDidEndDecelerating 之前执行此方法，具体根据swizzingOption确定
- SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
- scrollView减速完成停止滚动时执行的方法
- */
-- (void)os_scrollViewDidEndDeceleratingForDelegate {
-    
-}
-
-/**
- UIScrollView在执行 - _scrollViewDidEndDraggingForDelegateWithDeceleration: 之前执行此方法，具体根据swizzingOption确定
- SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
- scrollView滚动完成停止滚动时执行的方法
- */
-- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
-    BOOL res = self.isDecelerating;
-}
+///**
+// UIScrollView在执行 - scrollViewDidEndDecelerating 之前执行此方法，具体根据swizzingOption确定
+// SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
+// scrollView减速完成停止滚动时执行的方法
+// */
+//- (void)os_scrollViewDidEndDeceleratingForDelegate {
+//    
+//}
+//
+///**
+// UIScrollView在执行 - _scrollViewDidEndDraggingForDelegateWithDeceleration: 之前执行此方法，具体根据swizzingOption确定
+// SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
+// scrollView滚动完成停止滚动时执行的方法
+// */
+//- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
+//    
+//}
 
 ////////////////////////////////////////////////////////////////////////
 #pragma mark -
@@ -875,88 +922,6 @@ indicatoTintColor = _indicatoTintColor;
     // 注入额外的实现
     Method method = class_getInstanceMethod(baseClas, orginSelector);
     
-    // 获取方法的参数类型
-    // 获取方法的参数个数，由于方法中默认有两个隐士参数self 和 _cmd ，所以个数应该减去2
-    unsigned int argumentsCount = method_getNumberOfArguments(method);
-    NSMutableArray *argumentsTypes = @[].mutableCopy;
-    for (unsigned int j = 0; j < argumentsCount; ++j) {
-        char argDst[512] = {};
-        method_getArgumentType(method, j, argDst, 512);
-        
-        NSLog(@"第%u个参数类型为：%s", j, argDst);
-        
-        [argumentsTypes addObject:[NSString stringWithFormat:@"%s", argDst]];
-    }
-    
-    for (NSInteger i = 2; i < [[argumentsTypes mutableCopy] count]; ++i) {
-        // 取出参数对象
-        id obj = argumentsTypes[i];
-        // 判断需要设置的参数是否是NSNull, 如果是就设置为nil
-        if ([obj isKindOfClass:[NSNull class]]) {
-            obj = nil;
-        }
-        // 获取参数类型
-        const char *argumentType = [obj UTF8String] ;
-        
-        // 判断参数类型 根据类型转化数据类型
-        NSString *argumentTypeString = [NSString stringWithUTF8String:argumentType];
-        
-        
-        if ([argumentTypeString isEqualToString:@"@"]) { // id
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"id"];
-        }  else if ([argumentTypeString isEqualToString:@"B"]) { // bool
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"bool"];
-        } else if ([argumentTypeString isEqualToString:@"f"]) { // float
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"float"];
-        } else if ([argumentTypeString isEqualToString:@"d"]) { // double
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"double"];
-        } else if ([argumentTypeString isEqualToString:@"c"]) { // char
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"char"];
-        } else if ([argumentTypeString isEqualToString:@"i"]) { // int
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"int"];
-        } else if ([argumentTypeString isEqualToString:@"I"]) { // unsigned int
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned int"];
-        } else if ([argumentTypeString isEqualToString:@"S"]) { // unsigned short
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned short"];
-        } else if ([argumentTypeString isEqualToString:@"L"]) { // unsigned long
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned long"];
-        } else if ([argumentTypeString isEqualToString:@"s"]) { // shrot
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"shrot"];
-        } else if ([argumentTypeString isEqualToString:@"l"]) { // long
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"long"];
-        } else if ([argumentTypeString isEqualToString:@"q"]) { // long long
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"long long"];
-        } else if ([argumentTypeString isEqualToString:@"C"]) { // unsigned char
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned char"];
-        } else if ([argumentTypeString isEqualToString:@"Q"]) { // unsigned long long
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"unsigned long long"];
-        } else if ([argumentTypeString isEqualToString:@"{CGRect={CGPoint=dd}{CGSize=dd}}"]) { // CGRect
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"CGRect"];
-        } else if ([argumentTypeString isEqualToString:@"{UIEdgeInsets=dddd}"]) { // UIEdgeInsets
-            [argumentsTypes replaceObjectAtIndex:i withObject:@"UIEdgeInsets"];
-        }
-        
-    }
-    
-    
-    char returnType[512] = {};
-    method_getReturnType(method, returnType, 512);
-    NSLog(@"返回值类型：%s", returnType);
-
-    
-    IMP newImp = NULL;
-    if (argumentsCount == 2) {
-       newImp = imp_implementationWithBlock(^  (id _self) {
-           
-        });
-    }
-    else if (argumentsCount == 3) {
-        NSString *type = argumentsTypes[2];
-        
-        newImp = imp_implementationWithBlock(^  (id _self, int i) {
-            
-        });
-    }
     
     // 设置method这个方法的实现
     IMP orginImp = method_setImplementation(method, (IMP)xy_orginalImplementation);
