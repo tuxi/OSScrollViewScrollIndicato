@@ -61,22 +61,11 @@
 //}
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
-    [scrollView setHiddenIndicato:NO];
+    
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        
-        [scrollView setHiddenIndicato:YES];
-    });
-    // 减速stop
-    NSLog(@"stop %s", __func__);
-    // UIScrollView在执行当前代理方法前执行了_scrollViewDidEndDeceleratingForDelegate方法，为私有方法，无参数
-    SEL didEndDecelerating = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
-    if ([scrollView respondsToSelector:didEndDecelerating]) {
-        NSLog(@"减速stop");
-    }
-    // #1	0x000000018d703198 in -[UIScrollView(UIScrollViewInternal) _scrollViewDidEndDeceleratingForDelegate] ()
+    
 
 }
 
@@ -84,18 +73,7 @@
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
     if (decelerate == NO) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            
-            [scrollView setHiddenIndicato:YES];
-        });
-        // 拖拽 非减速stop
-        NSLog(@"stop %s", __func__);
-// #1	0x000000018d703100 in -[UIScrollView(UIScrollViewInternal) _scrollViewDidEndDraggingForDelegateWithDeceleration:] ()
-        // UIScrollView在执行当前代理方法前执行了_scrollViewDidEndDraggingForDelegateWithDeceleration:方法，为私有方法，有参数
-        SEL didEndDragging = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
-        if ([scrollView respondsToSelector:didEndDragging]) {
-            NSLog(@"非减速stop");
-        }
+        
     }
 }
 

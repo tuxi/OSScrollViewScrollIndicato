@@ -30,6 +30,12 @@ static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewCon
  */
 static CGFloat OSScrollIndicatoViewWidth = 20.0;
 
+@interface NSObject (XYSwizzlingExtension)
+
++ (void)exchangeImplementationWithSelector:(SEL)originSelector swizzledSelector:(SEL)swizzledSelector;
+
+@end
+
 
 @interface OSScrollIndicatoView : UIView
 
@@ -57,33 +63,6 @@ static CGFloat OSScrollIndicatoViewWidth = 20.0;
 - (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
 
 - (void)setHidden:(BOOL)hidden animated:(BOOL)animated;
-
-@end
-
-#pragma mark *** _SwizzlingObject ***
-
-@interface _SwizzlingObject : NSObject
-
-@property (nonatomic) Class swizzlingClass;
-@property (nonatomic) SEL orginSelector;
-@property (nonatomic) SEL swizzlingSelector;
-@property (nonatomic) NSValue *swizzlingImplPointer;
-@property (nonatomic) SwizzlingOption swizzlingOption;
-@property (nonatomic, strong) NSArray *arguments;
-@property (nonatomic, strong) NSInvocation *originalInvocation;
-
-@end
-
-
-#pragma mark *** NSObject (SwizzlingExtend) ***
-
-@interface NSObject (SwizzlingExtend)
-
-@property (nonatomic, class, readonly) NSMutableDictionary<ImplementationKey, _SwizzlingObject *> *implementationDictionary;
-
-- (Class)xy_baseClassToSwizzling;
-- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector;
-- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector swizzingOption:(SwizzlingOption)swizzingOption;
 
 @end
 
@@ -725,9 +704,23 @@ indicatoTintColor = _indicatoTintColor;
 
 - (void)setHiddenIndicato:(BOOL)hiddenIndicato {
     objc_setAssociatedObject(self, @selector(hiddenIndicato), @(hiddenIndicato), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    if (self.os_scrollIndicatoStyle != OSScrollIndicatoStyleNone) {
+    if (self.os_scrollIndicatoStyle == OSScrollIndicatoStyleNone) {
+        return;
+    }
+    if (hiddenIndicato == NO) {
+        self.scrollIndicatoView.alpha = 1.0;
         self.scrollIndicatoView.hidden = hiddenIndicato;
     }
+    else {
+        [UIView animateWithDuration:0.1 animations:^{
+            self.scrollIndicatoView.alpha = 0.0;
+        } completion:^(BOOL finished) {
+            self.scrollIndicatoView.hidden = hiddenIndicato;
+            
+        }];
+    }
+    
+    
 }
 
 - (BOOL)hiddenIndicato {
@@ -746,28 +739,35 @@ indicatoTintColor = _indicatoTintColor;
         [self setScrollIndicatoView:scrollIndicatoView];
         if ([self xy_canRemoveScrollIndicatoView]) {
             // mark: removeScrollIndicatoView 方法hock到removeFromSuperview中，但是removeScrollIndicatoView中的释放工作要在removeFromSuperview之后执行，不然会挂掉的，所有这里使用SwizzlingOptionAfter
-            [self hockSelector:@selector(removeFromSuperview) swizzlingSelector:@selector(removeScrollIndicatoView) swizzingOption:SwizzlingOptionAfter];
+            [[self class] exchangeImplementationWithSelector:@selector(removeFromSuperview) swizzledSelector:@selector(removeScrollIndicatoView)];
         }
         if ([self xy_canSetOs_separatorInset]) {
-            [self hockSelector:@selector(setSeparatorInset:) swizzlingSelector:@selector(setOs_separatorInset:)];
+            [[self class] exchangeImplementationWithSelector:@selector(setSeparatorInset:) swizzledSelector:@selector(setOs_separatorInset:)];
             UITableView *tableView = (UITableView *)self;
             tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
         }
         
         
-//        if ([self xy_canObserverPrivateDelegateMethods]) {
-//            // 减速完成停止滚动，非减速
-//            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
-//            if ([self respondsToSelector:didEndDeceleratingSEL]) {
-//                [self hockSelector:didEndDeceleratingSEL swizzlingSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate) swizzingOption:SwizzlingOptionAfter];
-//            }
-//            // 拖拽完成停止滚动，非减速
-//            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
-//            if ([self respondsToSelector:didEndDraggingSEL]) {
-//                [self hockSelector:didEndDraggingSEL swizzlingSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:) swizzingOption:SwizzlingOptionAfter];
-//            }
-//            
-//        }
+        if ([self xy_canObserverPrivateDelegateMethods]) {
+            // 减速完成停止滚动，非减速
+            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
+            if ([self respondsToSelector:didEndDeceleratingSEL]) {
+                [[self class] exchangeImplementationWithSelector:didEndDeceleratingSEL swizzledSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate)];
+            }
+            // 拖拽完成停止滚动，非减速
+            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
+            if ([self respondsToSelector:didEndDraggingSEL]) {
+                [[self class] exchangeImplementationWithSelector:didEndDraggingSEL swizzledSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:)];
+            }
+            
+            // 即将开始拖拽，显示
+            SEL willBeginDraggingSEL = NSSelectorFromString(@"_scrollViewWillBeginDragging");
+            if ([self respondsToSelector:willBeginDraggingSEL]) {
+                [[self class] exchangeImplementationWithSelector:willBeginDraggingSEL swizzledSelector:@selector(os_scrollViewWillBeginDragging)];
+            }
+            
+            
+        }
     }
     return scrollIndicatoView;
 }
@@ -788,23 +788,34 @@ indicatoTintColor = _indicatoTintColor;
 
 }
 
-///**
-// UIScrollView在执行 - scrollViewDidEndDecelerating 之前执行此方法，具体根据swizzingOption确定
-// SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
-// scrollView减速完成停止滚动时执行的方法
-// */
-//- (void)os_scrollViewDidEndDeceleratingForDelegate {
-//    
-//}
-//
-///**
-// UIScrollView在执行 - _scrollViewDidEndDraggingForDelegateWithDeceleration: 之前执行此方法，具体根据swizzingOption确定
-// SwizzlingOptionAfter: 此方法会在public代理方法执行完成后执行此方法
-// scrollView滚动完成停止滚动时执行的方法
-// */
-//- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
-//    
-//}
+///
+/// 执行scrollViewWillBeginDragging: 之前执行的方法，显示OSScrollViewScrollIndicato
+///
+- (void)os_scrollViewWillBeginDragging {
+    [self os_scrollViewWillBeginDragging];
+    [self setHiddenIndicato:NO];
+}
+
+///
+/// scrollView减速完成停止滚动时执行的方法 执行scrollViewDidEndDecelerating: 方法之前执行的方法，隐藏
+///
+- (void)os_scrollViewDidEndDeceleratingForDelegate {
+    [self os_scrollViewDidEndDeceleratingForDelegate];
+    
+    [self setHiddenIndicato:YES];
+
+}
+
+///
+/// scrollView滚动完成停止滚动时执行的方法 执行scrollViewDidEndDragging: willDecelerate: 方法之前执行的方法，隐藏
+///
+- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
+    [self os_scrollViewDidEndDraggingForDelegateWithDeceleration:isDecelerating];
+    
+    if (isDecelerating == NO) {
+        [self setHiddenIndicato:YES];
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 #pragma mark -
@@ -869,142 +880,27 @@ indicatoTintColor = _indicatoTintColor;
 
 @end
 
+@implementation NSObject (XYSwizzlingExtension)
 
-@implementation _SwizzlingObject
-
-- (NSString *)description {
+#pragma mark - Swizzling
++ (void)exchangeImplementationWithSelector:(SEL)originSelector swizzledSelector:(SEL)swizzledSelector {
+    Class class = [self class];
+    Method originMethod = class_getInstanceMethod(class, originSelector);
+    Method swizzledMethod = class_getInstanceMethod(class, swizzledSelector);
     
-    NSDictionary *descriptionDict = @{@"swizzlingClass": self.swizzlingClass,
-                                      @"orginSelector": NSStringFromSelector(self.orginSelector),
-                                      @"swizzlingImplPointer": self.swizzlingImplPointer};
-    
-    return [descriptionDict description];
-}
-
-- (SwizzlingOption)swizzlingOption {
-    return _swizzlingOption ?: SwizzlingOptionBefore;
+    BOOL didAddMethod = class_addMethod(class,
+                                        originSelector,
+                                        method_getImplementation(swizzledMethod),
+                                        method_getTypeEncoding(swizzledMethod));
+    if (didAddMethod) {
+        class_replaceMethod(class,
+                            swizzledSelector,
+                            method_getImplementation(originMethod),
+                            method_getTypeEncoding(originMethod));
+    } else {
+        method_exchangeImplementations(originMethod, swizzledMethod);
+    }
 }
 
 
 @end
-
-@implementation NSObject (SwizzlingExtend)
-
-////////////////////////////////////////////////////////////////////////
-#pragma mark - Method swizzling
-////////////////////////////////////////////////////////////////////////
-
-- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector swizzingOption:(SwizzlingOption)swizzingOption {
-    // 本类未实现则return
-    if (![self respondsToSelector:orginSelector]) {
-        return;
-    }
-    
-    NSLog(@"%@", self.implementationDictionary);
-    
-    for (_SwizzlingObject *implObject in self.implementationDictionary.allValues) {
-        // 确保setImplementation 在UITableView or UICollectionView只调用一次, 也就是每个方法的指针只存储一次
-        if (orginSelector == implObject.orginSelector && [self isKindOfClass:implObject.swizzlingClass]) {
-            return;
-        }
-    }
-    
-    Class baseClas = [self xy_baseClassToSwizzling];
-    ImplementationKey key = xy_getImplementationKey(baseClas, orginSelector);
-    _SwizzlingObject *swizzleObjcet = [self.implementationDictionary objectForKey:key];
-    NSValue *implValue = swizzleObjcet.swizzlingImplPointer;
-    
-    // 如果该类的实现已经存在，就return
-    if (implValue || !key || !baseClas) {
-        return;
-    }
-    
-    // 注入额外的实现
-    Method method = class_getInstanceMethod(baseClas, orginSelector);
-    
-    
-    // 设置method这个方法的实现
-    IMP orginImp = method_setImplementation(method, (IMP)xy_orginalImplementation);
-    
-    // 将新实现保存到implementationDictionary中
-    swizzleObjcet = [_SwizzlingObject new];
-    swizzleObjcet.swizzlingClass = baseClas;
-    swizzleObjcet.orginSelector = orginSelector;
-    swizzleObjcet.swizzlingImplPointer = [NSValue valueWithPointer:orginImp];
-    swizzleObjcet.swizzlingSelector = swizzlingSelector;
-    swizzleObjcet.swizzlingOption = swizzingOption;
-    [self.implementationDictionary setObject:swizzleObjcet forKey:key];
-}
-
-- (void)hockSelector:(SEL)orginSelector swizzlingSelector:(SEL)swizzlingSelector {
-    [self hockSelector:orginSelector swizzlingSelector:swizzlingSelector swizzingOption:SwizzlingOptionBefore];
-    
-}
-
-/// 根据类名和方法，拼接字符串，作为implementationDictionary的key
-NSString * xy_getImplementationKey(Class clas, SEL selector) {
-    if (clas == nil || selector == nil) {
-        return nil;
-    }
-    
-    NSString *className = NSStringFromClass(clas);
-    NSString *selectorName = NSStringFromSelector(selector);
-    return [NSString stringWithFormat:@"%@_%@", className, selectorName];
-}
-
-// 对原方法的实现进行加工
-void xy_orginalImplementation(id self, SEL _cmd) {
-    
-    Class baseCls = [self xy_baseClassToSwizzling];
-    ImplementationKey key = xy_getImplementationKey(baseCls, _cmd);
-    _SwizzlingObject *swizzleObject = [[self implementationDictionary] objectForKey:key];
-    NSValue *implValue = swizzleObject.swizzlingImplPointer;
-    
-    // 获取原方法的实现
-    IMP impPointer = [implValue pointerValue];
-    
-    dispatch_block_t block = ^{
-        // 执行swizzing
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        SEL swizzlingSelector = swizzleObject.swizzlingSelector;
-        if ([self respondsToSelector:swizzlingSelector]) {
-            [self performSelector:swizzlingSelector];
-        }
-#pragma clang diagnostic pop
-    };
-    
-    if (swizzleObject.swizzlingOption == SwizzlingOptionBefore) {
-        block();
-    }
-    // 执行原实现
-    if (impPointer) {
-        ((void(*)(id, SEL))impPointer)(self, _cmd);
-    }
-    
-    if (swizzleObject.swizzlingOption == SwizzlingOptionAfter) {
-        block();
-    }
-    
-}
-+ (NSMutableDictionary *)implementationDictionary {
-    static NSMutableDictionary *table = nil;
-    table = objc_getAssociatedObject(self, _cmd);
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        table = [NSMutableDictionary dictionary];
-        objc_setAssociatedObject(self, _cmd, table, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    });
-    return table;
-}
-
-- (NSMutableDictionary<ImplementationKey, _SwizzlingObject *> *)implementationDictionary {
-    return self.class.implementationDictionary;
-}
-
-- (Class)xy_baseClassToSwizzling {
-    return [self class];
-}
-
-@end
-
