@@ -229,10 +229,14 @@ indicatoTintColor = _indicatoTintColor;
     if (self.isHidden && hidden == NO) {
         [UIView performWithoutAnimation:^{
             self.alpha = alpha;
+            super.hidden = NO;
+            [self layoutInScrollView];
+            [self setNeedsDisplay];
         }];
-        super.hidden = NO;
-        [self layoutInScrollView];
-        [self setNeedsDisplay];
+    }
+    
+    if (!hidden) {
+        self.alpha = alpha;
     }
     
     CGRect fromRect = self.frame;
@@ -248,7 +252,7 @@ indicatoTintColor = _indicatoTintColor;
         toRect.origin.x = indicatoOffset;
     }
     self.frame = fromRect;
-    
+
     [UIView animateWithDuration:3.0
                           delay:0.0
          usingSpringWithDamping:1.0
@@ -714,19 +718,8 @@ indicatoTintColor = _indicatoTintColor;
     if (self.os_scrollIndicatoStyle == OSScrollIndicatoStyleNone) {
         return;
     }
-    if (hiddenIndicato == NO) {
-        self.scrollIndicatoView.alpha = 1.0;
-        self.scrollIndicatoView.hidden = hiddenIndicato;
-    }
-    else {
-        [UIView animateWithDuration:0.1 animations:^{
-            self.scrollIndicatoView.alpha = 0.0;
-        } completion:^(BOOL finished) {
-            self.scrollIndicatoView.hidden = hiddenIndicato;
-            
-        }];
-    }
     
+    self.scrollIndicatoView.hidden = hiddenIndicato;
     
 }
 
