@@ -464,43 +464,47 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     
-    [_feedbackGenerator prepare];
-    
-    self.scrollView.scrollEnabled = NO;
-    self.dragging = YES;
-    
-    CGPoint touchPoint = [touches.anyObject locationInView:self];
-    
-    CGRect indicatoFrame = self.indicatoView.frame;
-    if (touchPoint.y > (indicatoFrame.origin.y - 20) &&
-        touchPoint.y < indicatoFrame.origin.y + (indicatoFrame.size.height + 20)) {
-        self.fingerOffset = CGPointMake(self.fingerOffset.x, (touchPoint.y - indicatoFrame.origin.y));
-        return;
-    }
-    
-    CGFloat halfHeight = indicatoFrame.size.height * 0.5;
-    
-    CGFloat destinationOffsetY = touchPoint.y - halfHeight;
-    destinationOffsetY = MAX(0.0f, destinationOffsetY);
-    destinationOffsetY = MIN(self.frame.size.height - halfHeight, destinationOffsetY);
-    
-    self.fingerOffset = CGPointMake(self.fingerOffset.x, touchPoint.y - destinationOffsetY);
-    indicatoFrame.origin.y = destinationOffsetY;
-    
-    [UIView animateWithDuration:0.2
-                          delay:0.0
-         usingSpringWithDamping:1.0
-          initialSpringVelocity:0.1
-                        options:
-     UIViewAnimationOptionBeginFromCurrentState |
-     UIViewAnimationOptionAllowUserInteraction
-                     animations:^{
-                         self.indicatoView.frame = indicatoFrame;
-    } completion:^(BOOL finished) {
+    void (^ block)() = ^{
+        [_feedbackGenerator prepare];
         
-    }];
+        self.scrollView.scrollEnabled = NO;
+        self.dragging = YES;
+        
+        CGPoint touchPoint = [touches.anyObject locationInView:self];
+        
+        CGRect indicatoFrame = self.indicatoView.frame;
+        if (touchPoint.y > (indicatoFrame.origin.y - 20) &&
+            touchPoint.y < indicatoFrame.origin.y + (indicatoFrame.size.height + 20)) {
+            self.fingerOffset = CGPointMake(self.fingerOffset.x, (touchPoint.y - indicatoFrame.origin.y));
+            return;
+        }
+        
+        CGFloat halfHeight = indicatoFrame.size.height * 0.5;
+        
+        CGFloat destinationOffsetY = touchPoint.y - halfHeight;
+        destinationOffsetY = MAX(0.0f, destinationOffsetY);
+        destinationOffsetY = MIN(self.frame.size.height - halfHeight, destinationOffsetY);
+        
+        self.fingerOffset = CGPointMake(self.fingerOffset.x, touchPoint.y - destinationOffsetY);
+        indicatoFrame.origin.y = destinationOffsetY;
+        
+        [UIView animateWithDuration:0.2
+                              delay:0.0
+             usingSpringWithDamping:1.0
+              initialSpringVelocity:0.1
+                            options:
+         UIViewAnimationOptionBeginFromCurrentState |
+         UIViewAnimationOptionAllowUserInteraction
+                         animations:^{
+                             self.indicatoView.frame = indicatoFrame;
+                         } completion:NULL];
+        
+        [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
+    };
     
-    [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
+    [UIView performWithoutAnimation:block];
+    
+   
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -627,13 +631,24 @@ indicatoTintColor = _indicatoTintColor;
     _dragging = dragging;
     
     void (^block)() = ^{
-        self.trackView.image = [[self class] verticalCapsuleImageWithWidth:self.trackWidth];
-        self.indicatoView.image = [[self class] verticalCapsuleImageWithWidth:self.indicatoWidth];
-        [self setNeedsLayout];
+        CGRect trankViewFrame = self.trackView.frame;
+        CGRect indicatoWidthFrame = self.indicatoView.frame;
+        trankViewFrame.size.width = self.trackWidth;
+        indicatoWidthFrame.size.width = self.indicatoWidth;
+        self.trackView.frame = trankViewFrame;
+        self.indicatoView.frame = indicatoWidthFrame;
+        [self layoutIfNeeded];
     };
     
     if (dragging == NO) {
-        [UIView animateWithDuration:2.0 animations:block];
+        [UIView animateWithDuration:0.2
+                              delay:0.0
+             usingSpringWithDamping:1.0
+              initialSpringVelocity:0.1
+                            options:
+         UIViewAnimationOptionBeginFromCurrentState |
+         UIViewAnimationOptionAllowUserInteraction
+                         animations:block completion:NULL];
     }
     else {
         block();
@@ -652,6 +667,8 @@ indicatoTintColor = _indicatoTintColor;
         _trackView = trackView;
         trackView.accessibilityIdentifier = NSStringFromSelector(_cmd);
         [self addSubview:_trackView];
+        trackView.layer.cornerRadius = 0.6;
+        trackView.layer.masksToBounds = YES;
     }
     return _trackView;
 }
@@ -662,6 +679,8 @@ indicatoTintColor = _indicatoTintColor;
         _indicatoView = indicatoView;
         indicatoView.accessibilityIdentifier = NSStringFromSelector(_cmd);
         [self addSubview:_indicatoView];
+        indicatoView.layer.cornerRadius = 0.5;
+        indicatoView.layer.masksToBounds = YES;
     }
     return _indicatoView;
 }
@@ -793,7 +812,7 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewWillBeginDragging {
     [self os_scrollViewWillBeginDragging];
-    [self setHiddenIndicato:NO];
+//    [self setHiddenIndicato:NO];
 }
 
 ///
@@ -802,7 +821,7 @@ indicatoTintColor = _indicatoTintColor;
 - (void)os_scrollViewDidEndDeceleratingForDelegate {
     [self os_scrollViewDidEndDeceleratingForDelegate];
     
-    [self setHiddenIndicato:YES];
+//    [self setHiddenIndicato:YES];
 
 }
 
@@ -813,7 +832,7 @@ indicatoTintColor = _indicatoTintColor;
     [self os_scrollViewDidEndDraggingForDelegateWithDeceleration:isDecelerating];
     
     if (isDecelerating == NO) {
-        [self setHiddenIndicato:YES];
+//        [self setHiddenIndicato:YES];
     }
 }
 
