@@ -23,7 +23,7 @@ typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
 @property (nonatomic, assign) OSScrollIndicatoStyle os_scrollIndicatoStyle;
 @property (nonatomic, assign) BOOL hiddenIndicato;
 
-- (void)removeScrollIndicatoView;
+- (void)os_removeScrollIndicatoView;
 
 - (UIEdgeInsets)adjustedTableViewSeparatorInsetForInset:(UIEdgeInsets)inset;
 - (UIEdgeInsets)adjustedTableViewCellLayoutMarginsForMargins:(UIEdgeInsets)layoutMargins manualOffset:(CGFloat)offset;

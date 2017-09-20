@@ -18,6 +18,7 @@
 		180CEC9E1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m in Sources */ = {isa = PBXBuildFile; fileRef = 180CEC9D1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m */; };
 		180CEC9F1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m in Sources */ = {isa = PBXBuildFile; fileRef = 180CEC9D1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m */; };
 		180CECA01F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m in Sources */ = {isa = PBXBuildFile; fileRef = 180CEC9D1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m */; };
+		182A97E81F7293C000CF15F3 /* MainViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 182A97E71F7293C000CF15F3 /* MainViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,8 @@
 		180CEC981F361C7700A04069 /* ViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		180CEC9C1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIScrollView+OSScrollIndicatoExtend.h"; sourceTree = "<group>"; };
 		180CEC9D1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIScrollView+OSScrollIndicatoExtend.m"; sourceTree = "<group>"; };
+		182A97E61F7293C000CF15F3 /* MainViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MainViewController.h; sourceTree = "<group>"; };
+		182A97E71F7293C000CF15F3 /* MainViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MainViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +153,8 @@
 				180CEC961F361C7700A04069 /* AppDelegate.m */,
 				180CEC971F361C7700A04069 /* ViewController.h */,
 				180CEC981F361C7700A04069 /* ViewController.m */,
+				182A97E61F7293C000CF15F3 /* MainViewController.h */,
+				182A97E71F7293C000CF15F3 /* MainViewController.m */,
 			);
 			path = Example;
 			sourceTree = "<group>";
@@ -302,6 +307,7 @@
 				180CEC9B1F361C7700A04069 /* ViewController.m in Sources */,
 				180CEC9A1F361C7700A04069 /* AppDelegate.m in Sources */,
 				180CEC631F361C2300A04069 /* main.m in Sources */,
+				182A97E81F7293C000CF15F3 /* MainViewController.m in Sources */,
 				180CEC9E1F361CDD00A04069 /* UIScrollView+OSScrollIndicatoExtend.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

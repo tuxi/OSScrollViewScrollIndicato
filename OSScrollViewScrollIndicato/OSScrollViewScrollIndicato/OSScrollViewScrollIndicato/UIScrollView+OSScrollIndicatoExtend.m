@@ -219,13 +219,17 @@ indicatoTintColor = _indicatoTintColor;
         super.hidden = YES;
         return;
     }
-    
+    CGFloat alpha = hidden ? 0.0 : 1.0;
     if (!animated) {
+        self.alpha = alpha;
         super.hidden = hidden;
         return;
     }
     
     if (self.isHidden && hidden == NO) {
+        [UIView performWithoutAnimation:^{
+            self.alpha = alpha;
+        }];
         super.hidden = NO;
         [self layoutInScrollView];
         [self setNeedsDisplay];
@@ -441,6 +445,9 @@ indicatoTintColor = _indicatoTintColor;
             [self layoutInScrollView];
             [self setNeedsLayout];
         }
+    }
+    else {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
 }
 
@@ -739,14 +746,14 @@ indicatoTintColor = _indicatoTintColor;
         [self setScrollIndicatoView:scrollIndicatoView];
         if ([self xy_canRemoveScrollIndicatoView]) {
             // mark: removeScrollIndicatoView 方法hock到removeFromSuperview中，但是removeScrollIndicatoView中的释放工作要在removeFromSuperview之后执行，不然会挂掉的，所有这里使用SwizzlingOptionAfter
-            [[self class] exchangeImplementationWithSelector:@selector(removeFromSuperview) swizzledSelector:@selector(removeScrollIndicatoView)];
+            [[self class] exchangeImplementationWithSelector:@selector(removeFromSuperview) swizzledSelector:@selector(os_removeScrollIndicatoView)];
         }
         if ([self xy_canSetOs_separatorInset]) {
             [[self class] exchangeImplementationWithSelector:@selector(setSeparatorInset:) swizzledSelector:@selector(setOs_separatorInset:)];
             UITableView *tableView = (UITableView *)self;
             tableView.separatorInset = [tableView adjustedTableViewSeparatorInsetForInset:tableView.separatorInset];
         }
-        
+
         
         if ([self xy_canObserverPrivateDelegateMethods]) {
             // 减速完成停止滚动，非减速
@@ -759,14 +766,13 @@ indicatoTintColor = _indicatoTintColor;
             if ([self respondsToSelector:didEndDraggingSEL]) {
                 [[self class] exchangeImplementationWithSelector:didEndDraggingSEL swizzledSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:)];
             }
-            
+
             // 即将开始拖拽，显示
             SEL willBeginDraggingSEL = NSSelectorFromString(@"_scrollViewWillBeginDragging");
             if ([self respondsToSelector:willBeginDraggingSEL]) {
                 [[self class] exchangeImplementationWithSelector:willBeginDraggingSEL swizzledSelector:@selector(os_scrollViewWillBeginDragging)];
             }
-            
-            
+
         }
     }
     return scrollIndicatoView;
@@ -776,7 +782,8 @@ indicatoTintColor = _indicatoTintColor;
 #pragma mark - 
 ////////////////////////////////////////////////////////////////////////
 
-- (void)removeScrollIndicatoView {
+- (void)os_removeScrollIndicatoView {
+    [self os_removeScrollIndicatoView];
     [self.scrollIndicatoView removeFromSuperview];
     self.scrollIndicatoView = nil;
 }
@@ -848,6 +855,7 @@ indicatoTintColor = _indicatoTintColor;
 }
 
 - (void)setOs_separatorInset:(UIEdgeInsets)separatorInset {
+    [self setOs_separatorInset:separatorInset];
     if (![self xy_canSetOs_separatorInset]) {
         return;
     }
@@ -863,7 +871,7 @@ indicatoTintColor = _indicatoTintColor;
 }
 
 - (BOOL)xy_canRemoveScrollIndicatoView {
-    if ([self respondsToSelector:@selector(removeScrollIndicatoView)]) {
+    if ([self respondsToSelector:@selector(os_removeScrollIndicatoView)]) {
         return YES;
     }
     return NO;
