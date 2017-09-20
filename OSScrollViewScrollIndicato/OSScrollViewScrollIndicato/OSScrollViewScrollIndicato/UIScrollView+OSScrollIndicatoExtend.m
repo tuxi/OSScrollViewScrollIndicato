@@ -594,7 +594,12 @@ indicatoTintColor = _indicatoTintColor;
     if (self.disabled || self.isDragging) {
         return touchView;
     }
-    
+//    if ([@[self, _trackView, _indicatoView] containsObject:touchView]) {
+//        self.hidden = NO;
+//    }
+//    else {
+//        self.hidden = YES;
+//    }
     self.scrollView.scrollEnabled = touchView != self;
     return touchView;
     
@@ -629,30 +634,33 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     _dragging = dragging;
-    
+  
     void (^block)() = ^{
+        
         CGRect trankViewFrame = self.trackView.frame;
-        CGRect indicatoWidthFrame = self.indicatoView.frame;
         trankViewFrame.size.width = self.trackWidth;
-        indicatoWidthFrame.size.width = self.indicatoWidth;
         self.trackView.frame = trankViewFrame;
+        CGRect indicatoWidthFrame = self.indicatoView.frame;
+        indicatoWidthFrame.size.width = self.indicatoWidth;
         self.indicatoView.frame = indicatoWidthFrame;
         [self layoutIfNeeded];
     };
     
-    if (dragging == NO) {
+    //    if (dragging == NO) {
         [UIView animateWithDuration:0.2
-                              delay:0.0
+                              delay:0.1
              usingSpringWithDamping:1.0
               initialSpringVelocity:0.1
                             options:
          UIViewAnimationOptionBeginFromCurrentState |
          UIViewAnimationOptionAllowUserInteraction
                          animations:block completion:NULL];
-    }
-    else {
-        block();
-    }
+        
+//    }
+//    else {
+//        block();
+//    }
+   
     
 }
 
