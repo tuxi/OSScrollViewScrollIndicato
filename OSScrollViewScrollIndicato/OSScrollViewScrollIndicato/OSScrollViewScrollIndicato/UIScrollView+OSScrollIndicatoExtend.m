@@ -31,40 +31,11 @@ static CGFloat OSScrollIndicatoViewDefaultWidth = 20.0;
 @end
 
 
-@interface OSScrollIndicatoView : UIView
-
-@property (nonatomic, weak, readonly) UIScrollView *scrollView;
-/** 指示器和trackView顶部和底部距离父控件的边距值，默认顶部为2.0，底部为2.0，右侧为5.0, 左侧暂时无效 */
-@property (nonatomic, assign) UIEdgeInsets contentEdgeInsets;
-/** 指示器所在轨道的主题颜色 */
-@property (nonatomic, strong) UIColor *trackTintColor;
-/** 指示器所在轨道的宽度 默认为2.0, 当OSScrollIndicatoStyleCustom时，宽度与父控件相同*/
-@property (nonatomic, assign) CGFloat trackWidth;
-/** 指示器的主题颜色*/
-@property (nonatomic, strong) UIColor *indicatoTintColor;
-/** 指示器的宽度，默认为4.0，当OSScrollIndicatoStyleCustom时，宽度比父控件小6 */
-@property (nonatomic, assign) CGFloat indicatoWidth;
-/** 指示器最小高度，默认为30.0 */
-@property (nonatomic, assign) CGFloat indicatoMinimiumHeight;
-/** 用户是否正在拖动指示器 */
-@property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;
-/** 指示器显示之前，指示器对比的缩放值, 当contentSize的高度除以scrollView的高度比例值 > minimumContentHeightScale才显示指示器 */
-@property (nonatomic, assign) CGFloat minimumContentHeightScale;
-/** 指示器样式 */
-@property (nonatomic, assign) OSScrollIndicatoStyle indicatoStyle;
-
-
-- (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
-
-- (void)setHidden:(BOOL)hidden animated:(BOOL)animated;
-
-@end
-
 #pragma mark *** UIScrollView () ***
 
 @interface UIScrollView ()
 
-@property (nonatomic, strong) OSScrollIndicatoView *scrollIndicatoView;
+@property (nonatomic, strong) OSScrollIndicatoView *os_scrollIndicatoView;
 
 @end
 
@@ -72,10 +43,15 @@ static CGFloat OSScrollIndicatoViewDefaultWidth = 20.0;
 
 @interface OSScrollIndicatoView ()
 
+/// 所在的tableView
 @property (nonatomic, weak) UIScrollView *scrollView;
+/// 调用setHidden: 方法时，会设置此属性
 @property (nonatomic, assign) BOOL userHidden;
+/// 指示器所在的轨道
 @property (nonatomic, weak) UIImageView *trackView;
+/// 指示器
 @property (nonatomic, weak) UIImageView *indicatoView;
+/// 是否有手指拖动在indicatoView上面
 @property (nonatomic, assign) BOOL dragging;
 /// 手指中心的偏移量
 @property (nonatomic, assign) CGPoint fingerOffset;
@@ -144,7 +120,7 @@ indicatoTintColor = _indicatoTintColor;
     
     [self restoreScrollView:_scrollView];
     [super removeFromSuperview];
-        _scrollView.scrollIndicatoView = nil;
+        _scrollView.os_scrollIndicatoView = nil;
     _scrollView = nil;
     
 }
@@ -153,6 +129,16 @@ indicatoTintColor = _indicatoTintColor;
 ////////////////////////////////////////////////////////////////////////
 #pragma mark - Public methods
 ////////////////////////////////////////////////////////////////////////
+
+- (void)setCustomView:(UIView *)customView {
+    if (_customView == customView) {
+        return;
+    }
+    
+    _customView = customView;
+    [self addSubview:customView];
+    [self setNeedsLayout];
+}
 
 - (void)setIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle {
     
@@ -197,7 +183,7 @@ indicatoTintColor = _indicatoTintColor;
     [self setupScrollView:scrollView];
     [scrollView addSubview:self];
     
-    scrollView.scrollIndicatoView = self;
+    scrollView.os_scrollIndicatoView = self;
     
     [self layoutInScrollView];
 }
@@ -426,8 +412,19 @@ indicatoTintColor = _indicatoTintColor;
     indicatoFrame.origin.y = MIN(indicatoFrame.origin.y, (frame.size.height - indicatoFrame.size.height));
     
     self.indicatoView.frame = indicatoFrame;
+    
+    [self updateCustomViewFrame];
 }
 
+/// 根据indicatoView更新customView的frame
+- (void)updateCustomViewFrame {
+    CGRect customViewFrame = _customView.frame;
+    CGRect indicatoFrame = self.indicatoView.frame;
+    CGFloat margin = 0.0;
+    customViewFrame.origin.x = -(customViewFrame.size.width + CGRectGetMaxX(indicatoFrame) + margin);
+    customViewFrame.origin.y = indicatoFrame.origin.y + CGRectGetHeight(indicatoFrame)*0.5 - CGRectGetHeight(customViewFrame)*0.5;
+    _customView.frame = customViewFrame;
+}
 
 - (CGFloat)heightOfIndicatoForContentSize {
     if (_scrollView == nil) {
@@ -502,6 +499,7 @@ indicatoTintColor = _indicatoTintColor;
          UIViewAnimationOptionAllowUserInteraction
                          animations:^{
                              self.indicatoView.frame = indicatoFrame;
+                             [self updateCustomViewFrame];
                          } completion:NULL];
         
         [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
@@ -568,7 +566,7 @@ indicatoTintColor = _indicatoTintColor;
     _indicatoView.frame = indicatoRect;
     delta -= indicatoRect.origin.y;
     delta = fabs(delta); // 绝对值
-    
+    [self updateCustomViewFrame];
     // 到达边缘时触发taptic反馈
 #ifdef __IPHONE_10_0
     // #define FLT_EPSILON                1.19209290E-07F 可用来作为float趋0最小的判断值
@@ -759,30 +757,16 @@ indicatoTintColor = _indicatoTintColor;
 
 @implementation UIScrollView (OSScrollIndicatoExtend)
 
-- (void)setHiddenIndicato:(BOOL)hiddenIndicato {
-    objc_setAssociatedObject(self, @selector(hiddenIndicato), @(hiddenIndicato), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    if (self.os_scrollIndicatoStyle == OSScrollIndicatoStyleNone) {
-        return;
-    }
-    
-    self.scrollIndicatoView.hidden = hiddenIndicato;
-    
+- (void)setOs_scrollIndicatoView:(OSScrollIndicatoView *)os_scrollIndicatoView {
+    objc_setAssociatedObject(self, @selector(os_scrollIndicatoView), os_scrollIndicatoView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (BOOL)hiddenIndicato {
-    return [objc_getAssociatedObject(self, _cmd) boolValue];
-}
-
-- (void)setScrollIndicatoView:(OSScrollIndicatoView *)scrollIndicatoView {
-    objc_setAssociatedObject(self, @selector(scrollIndicatoView), scrollIndicatoView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (OSScrollIndicatoView *)scrollIndicatoView {
+- (OSScrollIndicatoView *)os_scrollIndicatoView {
     
     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, _cmd);
     if (!scrollIndicatoView) {
         scrollIndicatoView = [[OSScrollIndicatoView alloc] initWithIndicatoStyle:OSScrollIndicatoStyleDefault];
-        [self setScrollIndicatoView:scrollIndicatoView];
+        [self setOs_scrollIndicatoView:scrollIndicatoView];
         if ([self xy_canRemoveScrollIndicatoView]) {
             // mark: removeScrollIndicatoView 方法hock到removeFromSuperview中，但是removeScrollIndicatoView中的释放工作要在removeFromSuperview之后执行，不然会挂掉的，所有这里使用SwizzlingOptionAfter
             [[self class] exchangeImplementationWithSelector:@selector(removeFromSuperview) swizzledSelector:@selector(os_removeScrollIndicatoView)];
@@ -823,14 +807,14 @@ indicatoTintColor = _indicatoTintColor;
 
 - (void)os_removeScrollIndicatoView {
     [self os_removeScrollIndicatoView];
-    [self.scrollIndicatoView removeFromSuperview];
-    self.scrollIndicatoView = nil;
+    [self.os_scrollIndicatoView removeFromSuperview];
+    self.os_scrollIndicatoView = nil;
 }
 
 - (void)setOs_scrollIndicatoStyle:(OSScrollIndicatoStyle)os_scrollIndicatoStyle {
     objc_setAssociatedObject(self, @selector(os_scrollIndicatoStyle), @(os_scrollIndicatoStyle), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    self.scrollIndicatoView.indicatoStyle = os_scrollIndicatoStyle;
-    self.scrollIndicatoView.scrollView = self;
+    self.os_scrollIndicatoView.indicatoStyle = os_scrollIndicatoStyle;
+    self.os_scrollIndicatoView.scrollView = self;
 
 }
 
@@ -839,7 +823,7 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewWillBeginDragging {
     [self os_scrollViewWillBeginDragging];
-     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
     [NSObject cancelPreviousPerformRequestsWithTarget:scrollIndicatoView selector:@selector(hiddenSelf) object:nil];
 }
 
@@ -848,7 +832,7 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewDidEndDeceleratingForDelegate {
     [self os_scrollViewDidEndDeceleratingForDelegate];
-    OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+    OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
     if (scrollIndicatoView.dragging) {
         return;
     }
@@ -864,7 +848,7 @@ indicatoTintColor = _indicatoTintColor;
     [self os_scrollViewDidEndDraggingForDelegateWithDeceleration:isDecelerating];
     
     if (isDecelerating == NO) {
-        OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+        OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
         if (scrollIndicatoView.dragging) {
             return;
         }
@@ -882,12 +866,12 @@ indicatoTintColor = _indicatoTintColor;
 
 
 - (UIEdgeInsets)adjustedTableViewSeparatorInsetForInset:(UIEdgeInsets)inset {
-    inset.right = self.scrollIndicatoView.contentEdgeInsets.right * 2.0;
+    inset.right = self.os_scrollIndicatoView.contentEdgeInsets.right * 2.0;
     return inset;
 }
 
 - (UIEdgeInsets)adjustedTableViewCellLayoutMarginsForMargins:(UIEdgeInsets)layoutMargins manualOffset:(CGFloat)offset {
-    layoutMargins.right = self.scrollIndicatoView.contentEdgeInsets.right * 2.0 + 15.0;
+    layoutMargins.right = self.os_scrollIndicatoView.contentEdgeInsets.right * 2.0 + 15.0;
     layoutMargins.right += offset;
     return layoutMargins;
 }

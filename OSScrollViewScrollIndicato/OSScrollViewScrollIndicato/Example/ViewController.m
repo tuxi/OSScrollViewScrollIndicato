@@ -21,6 +21,11 @@
     
     self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
     self.tableView.separatorInset = UIEdgeInsetsMake(64.0, 0, 0, 0);
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [btn setTitle:@"12345sdjshd" forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+    [btn sizeToFit];
+    self.tableView.os_scrollIndicatoView.customView = btn;
     
     // Mark: 当设置此属性为UIScrollViewContentInsetAdjustmentScrollableAxes时，手指放在滚动条上滚动时会出现乱窜的问题，待解决
 //    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;
@@ -48,7 +53,8 @@
     
     cell.textLabel.text = [NSString stringWithFormat:@"Cell %ld", indexPath.row+1];
     cell.layoutMargins = [tableView adjustedTableViewCellLayoutMarginsForMargins:cell.layoutMargins manualOffset:0.0f];
-    
+    UIButton *btn = (UIButton *)tableView.os_scrollIndicatoView.customView;
+    [btn setTitle:[NSString stringWithFormat:@"%ld-%d", indexPath.row, 100] forState:UIControlStateNormal];
     return cell;
 }
 
