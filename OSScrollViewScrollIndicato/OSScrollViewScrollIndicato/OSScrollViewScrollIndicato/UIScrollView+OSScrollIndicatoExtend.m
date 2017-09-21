@@ -468,7 +468,7 @@ indicatoTintColor = _indicatoTintColor;
     if (self.disabled) {
         return;
     }
-    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hiddenSelf) object:nil];
     void (^ block)() = ^{
         [_feedbackGenerator prepare];
         
@@ -506,8 +506,8 @@ indicatoTintColor = _indicatoTintColor;
         
         [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
     };
-    
-    [UIView performWithoutAnimation:block];
+    block();
+//    [UIView performWithoutAnimation:block];
     
    
 }
@@ -516,12 +516,21 @@ indicatoTintColor = _indicatoTintColor;
     
     self.scrollView.scrollEnabled = YES;
     self.dragging = NO;
+    
+    [self performSelector:@selector(hiddenSelf) withObject:nil afterDelay:3.0];
+    
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     
     self.scrollView.scrollEnabled = YES;
     self.dragging = NO;
+    
+    [self performSelector:@selector(hiddenSelf) withObject:nil afterDelay:3.0];
+}
+
+- (void)hiddenSelf {
+    [self setHidden:YES animated:YES];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -770,7 +779,7 @@ indicatoTintColor = _indicatoTintColor;
 
 - (OSScrollIndicatoView *)scrollIndicatoView {
     
-     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, _cmd);
+    OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, _cmd);
     if (!scrollIndicatoView) {
         scrollIndicatoView = [[OSScrollIndicatoView alloc] initWithIndicatoStyle:OSScrollIndicatoStyleDefault];
         [self setScrollIndicatoView:scrollIndicatoView];
@@ -830,7 +839,7 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewWillBeginDragging {
     [self os_scrollViewWillBeginDragging];
-//    [self setHiddenIndicato:NO];
+    [self setHiddenIndicato:NO];
 }
 
 ///
@@ -838,8 +847,12 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewDidEndDeceleratingForDelegate {
     [self os_scrollViewDidEndDeceleratingForDelegate];
+    OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+    if (scrollIndicatoView.dragging) {
+        return;
+    }
     
-//    [self setHiddenIndicato:YES];
+    [self setHiddenIndicato:YES];
 
 }
 
@@ -850,7 +863,11 @@ indicatoTintColor = _indicatoTintColor;
     [self os_scrollViewDidEndDraggingForDelegateWithDeceleration:isDecelerating];
     
     if (isDecelerating == NO) {
-//        [self setHiddenIndicato:YES];
+        OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+        if (scrollIndicatoView.dragging) {
+            return;
+        }
+        [self setHiddenIndicato:YES];
     }
 }
 
