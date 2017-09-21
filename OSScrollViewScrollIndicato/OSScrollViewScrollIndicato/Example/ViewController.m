@@ -21,6 +21,10 @@
     
     self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
     self.tableView.separatorInset = UIEdgeInsetsMake(64.0, 0, 0, 0);
+    
+    // Mark: 当设置此属性为UIScrollViewContentInsetAdjustmentScrollableAxes时，手指放在滚动条上滚动时会出现乱窜的问题，待解决
+//    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;
+    
 }
 
 

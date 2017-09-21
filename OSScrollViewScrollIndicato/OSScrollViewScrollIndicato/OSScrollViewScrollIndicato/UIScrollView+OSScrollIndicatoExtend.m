@@ -18,17 +18,11 @@ typedef struct {
     BOOL scrollEnabled;
 } OSScrollIndicatoScrollViewState;
 
-typedef NS_ENUM(NSInteger, SwizzlingOption) {
-    SwizzlingOptionBefore,
-    SwizzlingOptionAfter
-};
-
-typedef NSString * ImplementationKey NS_EXTENSIBLE_STRING_ENUM;
 static void * OSScrollIndicatoScrollViewContext = &OSScrollIndicatoScrollViewContext;
 /**
- 根据OSScrollIndicatoViewWidth确定self及子控件的宽度
+ 根据OSScrollIndicatoViewDefaultWidth确定self及子控件的宽度
  */
-static CGFloat OSScrollIndicatoViewWidth = 20.0;
+static CGFloat OSScrollIndicatoViewDefaultWidth = 20.0;
 
 @interface NSObject (XYSwizzlingExtension)
 
@@ -325,12 +319,18 @@ indicatoTintColor = _indicatoTintColor;
 #pragma mark - Layout
 ////////////////////////////////////////////////////////////////////////
 
+/// 布局self.frame
 - (void)layoutInScrollView {
     
     CGRect scrollViewFrame = _scrollView.frame;
-    UIEdgeInsets contentInset = _scrollView.contentInset;
+    UIEdgeInsets contentInset = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, *)) {
+        contentInset = _scrollView.adjustedContentInset;
+    } else {
+        contentInset = _scrollView.contentInset;
+    }
     CGPoint contentOffset = _scrollView.contentOffset;
-    CGFloat halfWidth = OSScrollIndicatoViewWidth * 0.5;
+    CGFloat halfWidth = OSScrollIndicatoViewDefaultWidth * 0.5;
     
     scrollViewFrame.size.height -= (contentInset.top + contentInset.bottom);
     CGFloat height = scrollViewFrame.size.height - (_contentEdgeInsets.top + _contentEdgeInsets.bottom);
@@ -338,10 +338,10 @@ indicatoTintColor = _indicatoTintColor;
     self.fingerOffset = CGPointMake(MAX(offsetX, 0.0), self.fingerOffset.y);
     
     CGRect frame = CGRectZero;
-    frame.size.width = OSScrollIndicatoViewWidth;
+    frame.size.width = OSScrollIndicatoViewDefaultWidth;
     frame.size.height = height;
     frame.origin.x = scrollViewFrame.size.width - (_contentEdgeInsets.right + halfWidth);
-    frame.origin.x = MIN(frame.origin.x, scrollViewFrame.size.width - OSScrollIndicatoViewWidth);
+    frame.origin.x = MIN(frame.origin.x, scrollViewFrame.size.width - OSScrollIndicatoViewDefaultWidth);
     frame.origin.y = _contentEdgeInsets.top;
     frame.origin.y += contentOffset.y;
     frame.origin.y += contentInset.top;
@@ -383,7 +383,12 @@ indicatoTintColor = _indicatoTintColor;
     indicatoFrame.origin.x = ceilf(((frame.size.width - self.indicatoWidth) * 0.5f) + self.fingerOffset.x);
     
     // 计算indicatoViewy轴的偏移量
-    UIEdgeInsets contentInset = _scrollView.contentInset;
+    UIEdgeInsets contentInset = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, *)) {
+        contentInset = _scrollView.adjustedContentInset;
+    } else {
+        contentInset = _scrollView.contentInset;
+    }
     CGPoint contentOffset     = _scrollView.contentOffset;
     CGSize contentSize        = _scrollView.contentSize;
     CGRect scrollViewFrame    = _scrollView.frame;
@@ -574,7 +579,12 @@ indicatoTintColor = _indicatoTintColor;
     CGFloat positionRatio = indicatoOffsetY / heightRange;
     
     CGRect frame       = _scrollView.frame;
-    UIEdgeInsets inset = _scrollView.contentInset;
+    UIEdgeInsets inset = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, *)) {
+        inset = _scrollView.adjustedContentInset;
+    } else {
+        inset = _scrollView.contentInset;
+    }
     CGSize contentSize = _scrollView.contentSize;
     
     CGFloat totalScrollSize = (contentSize.height + inset.top + inset.bottom) - frame.size.height;
@@ -696,7 +706,7 @@ indicatoTintColor = _indicatoTintColor;
 - (CGFloat)trackWidth {
     if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
         if (self.isDragging) {
-            return _trackWidth = OSScrollIndicatoViewWidth;
+            return _trackWidth = OSScrollIndicatoViewDefaultWidth;
         }
     }
     return _trackWidth = 2.0;
@@ -705,7 +715,7 @@ indicatoTintColor = _indicatoTintColor;
 - (CGFloat)indicatoWidth {
     if (self.indicatoStyle == OSScrollIndicatoStyleCustom) {
         if (self.isDragging) {
-            return _indicatoWidth = OSScrollIndicatoViewWidth-6;
+            return _indicatoWidth = OSScrollIndicatoViewDefaultWidth-6;
         }
     }
     return _indicatoWidth = 4.0;
