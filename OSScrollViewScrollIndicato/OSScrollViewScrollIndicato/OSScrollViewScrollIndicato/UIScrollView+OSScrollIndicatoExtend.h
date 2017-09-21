@@ -38,6 +38,9 @@ typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
 /** 指示器样式 */
 @property (nonatomic, assign) OSScrollIndicatoStyle indicatoStyle;
 @property (nonatomic, strong) UIView *customView;
+/** 当前指示器所在tableView的indexPath, 只有当前是tableView或者collectionView时才有效 */
+@property (nonatomic, strong) NSIndexPath *currentIndexPath;
+@property (nonatomic, copy) void (^ currentIndexPathChangeBlock)(NSIndexPath *indexPath);
 
 - (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
 

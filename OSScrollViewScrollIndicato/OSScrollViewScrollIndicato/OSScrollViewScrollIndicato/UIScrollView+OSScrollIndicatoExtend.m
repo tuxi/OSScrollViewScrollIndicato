@@ -424,6 +424,29 @@ indicatoTintColor = _indicatoTintColor;
     customViewFrame.origin.x = -(customViewFrame.size.width + CGRectGetMaxX(indicatoFrame) + margin);
     customViewFrame.origin.y = indicatoFrame.origin.y + CGRectGetHeight(indicatoFrame)*0.5 - CGRectGetHeight(customViewFrame)*0.5;
     _customView.frame = customViewFrame;
+    
+    if ([_scrollView isKindOfClass:[UITableView class]]) {
+        UIView *view = (UIButton *)self.customView ?: self;
+        CGPoint pointAtScrollView = [view convertPoint:view.frame.origin toView:_scrollView];
+        self.currentIndexPath = [(UITableView *)_scrollView indexPathForRowAtPoint:pointAtScrollView];
+    }
+    else if ([_scrollView isKindOfClass:[UICollectionView class]]) {
+        UIView *view = (UIButton *)self.customView ?: self;
+        CGPoint pointAtScrollView = [view convertPoint:view.frame.origin toView:_scrollView];
+        self.currentIndexPath = [(UICollectionView *)_scrollView indexPathForItemAtPoint:pointAtScrollView];
+    }
+    
+}
+
+- (void)setCurrentIndexPath:(NSIndexPath *)currentIndexPath {
+    if ([_currentIndexPath isEqual:currentIndexPath]) {
+        return;
+    }
+    _currentIndexPath = currentIndexPath;
+    
+    if (self.currentIndexPathChangeBlock) {
+        self.currentIndexPathChangeBlock(currentIndexPath);
+    }
 }
 
 - (CGFloat)heightOfIndicatoForContentSize {
