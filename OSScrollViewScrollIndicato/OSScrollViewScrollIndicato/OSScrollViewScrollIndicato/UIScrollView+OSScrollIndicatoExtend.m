@@ -839,7 +839,8 @@ indicatoTintColor = _indicatoTintColor;
 ///
 - (void)os_scrollViewWillBeginDragging {
     [self os_scrollViewWillBeginDragging];
-    [self setHiddenIndicato:NO];
+     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(scrollIndicatoView));
+    [NSObject cancelPreviousPerformRequestsWithTarget:scrollIndicatoView selector:@selector(hiddenSelf) object:nil];
 }
 
 ///
@@ -852,7 +853,7 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     
-    [self setHiddenIndicato:YES];
+    [scrollIndicatoView performSelector:@selector(hiddenSelf) withObject:nil afterDelay:3.0];
 
 }
 
@@ -867,7 +868,7 @@ indicatoTintColor = _indicatoTintColor;
         if (scrollIndicatoView.dragging) {
             return;
         }
-        [self setHiddenIndicato:YES];
+        [scrollIndicatoView performSelector:@selector(hiddenSelf) withObject:nil afterDelay:3.0];
     }
 }
 
