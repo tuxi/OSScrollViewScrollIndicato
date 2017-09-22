@@ -81,20 +81,20 @@ indicatoTintColor = _indicatoTintColor;
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
-        [self __setup];
+        [self commonInit];
     }
     return self;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
-        [self __setup];
+        [self commonInit];
     }
     return self;
 }
 
 
-- (void)__setup {
+- (void)commonInit {
     _indicatoMinimiumHeight = 30.0;
     _minimumContentHeightScale = 0.98;
     _contentEdgeInsets = UIEdgeInsetsMake(2.0, 0.0, 2.0, 5.0);
@@ -105,7 +105,6 @@ indicatoTintColor = _indicatoTintColor;
     
     _scrollViewSate.showsVerticalScrollIndicator = NO;
     _scrollViewSate.scrollEnabled = NO;
-    
 }
 
 
@@ -120,7 +119,7 @@ indicatoTintColor = _indicatoTintColor;
     
     [self restoreScrollView:_scrollView];
     [super removeFromSuperview];
-        _scrollView.os_scrollIndicatoView = nil;
+    _scrollView.os_scrollIndicatoView = nil;
     _scrollView = nil;
     
 }
@@ -222,18 +221,25 @@ indicatoTintColor = _indicatoTintColor;
     CGRect fromRect = self.frame;
     CGRect toRect = self.frame;
     
-    CGFloat widestElement = MAX(self.trackWidth, self.indicatoWidth);
-    CGFloat indicatoOffset = fromRect.origin.x + _contentEdgeInsets.right + widestElement * 2.0;
+    CGFloat selfWidestElement = MAX(self.trackWidth, self.indicatoWidth);
+    CGFloat indicatoOffsetX = fromRect.origin.x + _contentEdgeInsets.right + selfWidestElement * 2.0;
     
+    CGRect customViewFromRect = self.customView.frame;
+    CGRect customViewToRect = self.customView.frame;
+    CGFloat customViewWidestElement = self.customView.frame.size.width;
+    CGFloat customViewOffsetX = customViewFromRect.origin.x + _contentEdgeInsets.right + customViewWidestElement * 2.0;
     if (hidden == NO) {
-        fromRect.origin.x = indicatoOffset;
+        fromRect.origin.x = indicatoOffsetX;
+        customViewFromRect.origin.x = customViewOffsetX;
     }
     else {
-        toRect.origin.x = indicatoOffset;
+        toRect.origin.x = indicatoOffsetX;
+        customViewToRect.origin.x = customViewOffsetX;
     }
     self.frame = fromRect;
+    self.customView.frame = customViewFromRect;
 
-    [UIView animateWithDuration:3.0
+    [UIView animateWithDuration:1.0
                           delay:0.0
          usingSpringWithDamping:1.0
           initialSpringVelocity:0.1
@@ -242,6 +248,7 @@ indicatoTintColor = _indicatoTintColor;
      UIViewAnimationOptionAllowUserInteraction
                      animations:^{
                          self.frame = toRect;
+                         self.customView.frame = customViewToRect;
                      } completion:^(BOOL finished) {
                          [super setHidden:hidden];
                      }];

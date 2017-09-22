@@ -22,6 +22,9 @@
     self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
     self.tableView.separatorInset = UIEdgeInsetsMake(64.0, 0, 0, 0);
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [btn setBackgroundColor:[UIColor greenColor]];
+    btn.layer.cornerRadius = 6.0;
+    btn.layer.masksToBounds = YES;
     [btn setTitle:@"12345sdjshd" forState:UIControlStateNormal];
     [btn setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
     [btn sizeToFit];
