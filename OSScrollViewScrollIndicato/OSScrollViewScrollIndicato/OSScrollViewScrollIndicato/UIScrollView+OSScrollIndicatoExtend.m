@@ -426,26 +426,26 @@ indicatoTintColor = _indicatoTintColor;
     _customView.frame = customViewFrame;
     
     if ([_scrollView isKindOfClass:[UITableView class]]) {
-        UIView *view = (UIButton *)self.customView ?: self;
-        CGPoint pointAtScrollView = [view convertPoint:view.frame.origin toView:_scrollView];
-        self.currentIndexPath = [(UITableView *)_scrollView indexPathForRowAtPoint:pointAtScrollView];
+        UIView *view = (UIButton *)self.customView ?: self.indicatoView;
+        CGPoint pointAtScrollView = [self convertPoint:view.center toView:_scrollView];
+        self.indicatorInScrollViewIndexPath = [(UITableView *)_scrollView indexPathForRowAtPoint:pointAtScrollView];
     }
     else if ([_scrollView isKindOfClass:[UICollectionView class]]) {
         UIView *view = (UIButton *)self.customView ?: self;
-        CGPoint pointAtScrollView = [view convertPoint:view.frame.origin toView:_scrollView];
-        self.currentIndexPath = [(UICollectionView *)_scrollView indexPathForItemAtPoint:pointAtScrollView];
+        CGPoint pointAtScrollView = [view convertPoint:view.center toView:_scrollView];
+        self.indicatorInScrollViewIndexPath = [(UICollectionView *)_scrollView indexPathForItemAtPoint:pointAtScrollView];
     }
     
 }
 
-- (void)setCurrentIndexPath:(NSIndexPath *)currentIndexPath {
-    if ([_currentIndexPath isEqual:currentIndexPath]) {
+- (void)setIndicatorInScrollViewIndexPath:(NSIndexPath *)indicatorInScrollViewIndexPath {
+    if ([_indicatorInScrollViewIndexPath isEqual:indicatorInScrollViewIndexPath]) {
         return;
     }
-    _currentIndexPath = currentIndexPath;
+    _indicatorInScrollViewIndexPath = indicatorInScrollViewIndexPath;
     
-    if (self.currentIndexPathChangeBlock) {
-        self.currentIndexPathChangeBlock(currentIndexPath);
+    if (self.indicatorIndexPathChangeBlock) {
+        self.indicatorIndexPathChangeBlock(indicatorInScrollViewIndexPath);
     }
 }
 
