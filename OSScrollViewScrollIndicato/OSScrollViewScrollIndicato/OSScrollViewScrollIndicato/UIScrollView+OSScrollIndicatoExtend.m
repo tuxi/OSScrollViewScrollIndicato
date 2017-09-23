@@ -864,14 +864,14 @@ indicatoTintColor = _indicatoTintColor;
         
         if ([self xy_canObserverPrivateDelegateMethods]) {
             // 减速完成停止滚动，非减速
-            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_scrollViewDidEndDeceleratingForDelegate");
+            SEL didEndDeceleratingSEL = NSSelectorFromString(@"_stopScrollDecelerationNotify:");
             if ([self respondsToSelector:didEndDeceleratingSEL]) {
-                [[self class] exchangeImplementationWithSelector:didEndDeceleratingSEL swizzledSelector:@selector(os_scrollViewDidEndDeceleratingForDelegate)];
+                [[self class] exchangeImplementationWithSelector:didEndDeceleratingSEL swizzledSelector:@selector(os_stopScrollDecelerationNotify:)];
             }
             // 拖拽完成停止滚动，非减速
-            SEL didEndDraggingSEL = NSSelectorFromString(@"_scrollViewDidEndDraggingForDelegateWithDeceleration:");
+            SEL didEndDraggingSEL = NSSelectorFromString(@"_endPanNormal:");
             if ([self respondsToSelector:didEndDraggingSEL]) {
-                [[self class] exchangeImplementationWithSelector:didEndDraggingSEL swizzledSelector:@selector(os_scrollViewDidEndDraggingForDelegateWithDeceleration:)];
+                [[self class] exchangeImplementationWithSelector:didEndDraggingSEL swizzledSelector:@selector(os_endPanNormal:)];
             }
 
             // 即将开始拖拽，显示
@@ -902,20 +902,16 @@ indicatoTintColor = _indicatoTintColor;
 
 }
 
-///
 /// 执行scrollViewWillBeginDragging: 之前执行的方法，显示OSScrollViewScrollIndicato
-///
 - (void)os_scrollViewWillBeginDragging {
     [self os_scrollViewWillBeginDragging];
      OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
     [NSObject cancelPreviousPerformRequestsWithTarget:scrollIndicatoView selector:@selector(hiddenSelf) object:nil];
 }
 
-///
 /// scrollView减速完成停止滚动时执行的方法 执行scrollViewDidEndDecelerating: 方法之前执行的方法，隐藏
-///
-- (void)os_scrollViewDidEndDeceleratingForDelegate {
-    [self os_scrollViewDidEndDeceleratingForDelegate];
+- (void)os_stopScrollDecelerationNotify:(int)flag {
+    [self os_stopScrollDecelerationNotify:flag];
     OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
     if (scrollIndicatoView.dragging) {
         return;
@@ -925,13 +921,12 @@ indicatoTintColor = _indicatoTintColor;
 
 }
 
-///
+
 /// scrollView滚动完成停止滚动时执行的方法 执行scrollViewDidEndDragging: willDecelerate: 方法之前执行的方法，隐藏
-///
-- (void)os_scrollViewDidEndDraggingForDelegateWithDeceleration:(BOOL)isDecelerating {
-    [self os_scrollViewDidEndDraggingForDelegateWithDeceleration:isDecelerating];
+- (void)os_endPanNormal:(int)isDecelerating {
+    [self os_endPanNormal:isDecelerating];
     
-    if (isDecelerating == NO) {
+    if (self.isDecelerating == NO) {
         OSScrollIndicatoView *scrollIndicatoView = objc_getAssociatedObject(self, @selector(os_scrollIndicatoView));
         if (scrollIndicatoView.dragging) {
             return;
