@@ -95,8 +95,8 @@ indicatoTintColor = _indicatoTintColor;
 
 
 - (void)commonInit {
-    _indicatoMinimiumHeight = 30.0;
-    _minimumContentHeightScale = 0.98;
+    _indicatoMinHeight = 30.0;
+    _minContentHeightScale = 0.98;
     _contentEdgeInsets = UIEdgeInsetsMake(2.0, 0.0, 2.0, 5.0);
 #ifdef __IPHONE_10_0
     _feedbackGenerator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
@@ -297,7 +297,7 @@ indicatoTintColor = _indicatoTintColor;
     
     CGRect frame = _scrollView.frame;
     CGSize contentSize = _scrollView.contentSize;
-    if (contentSize.height / frame.size.height < _minimumContentHeightScale) {
+    if (contentSize.height / frame.size.height < _minContentHeightScale) {
         self.disabled = YES;
     }
     else {
@@ -425,6 +425,11 @@ indicatoTintColor = _indicatoTintColor;
 
 /// 根据indicatoView更新customView的frame
 - (void)updateCustomViewFrame {
+    
+    if (!_customView) {
+        return;
+    }
+    
     CGRect customViewFrame = _customView.frame;
     CGRect indicatoFrame = self.indicatoView.frame;
     CGFloat margin = 0.0;
@@ -432,38 +437,87 @@ indicatoTintColor = _indicatoTintColor;
     customViewFrame.origin.y = indicatoFrame.origin.y + CGRectGetHeight(indicatoFrame)*0.5 - CGRectGetHeight(customViewFrame)*0.5;
     _customView.frame = customViewFrame;
     
+    if (!self.customViewInScrollViewMinIndexPath) {
+        self.customViewInScrollViewMinIndexPath = [NSIndexPath indexPathForRow:1 inSection:0];
+    }
     if ([_scrollView isKindOfClass:[UITableView class]]) {
-        UIView *view = (UIButton *)self.customView ?: self.indicatoView;
+        
+        // 设置customView 距离scrollView 顶部最少的位置
+        UITableView *tableView = (UITableView *)_scrollView;
+        CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMinIndexPath];
+        cellRect = [tableView convertRect:cellRect toView:self];
+        customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
+         _customView.frame = customViewFrame;
+        
+        // 设置customView 距离scrollView 底部最大的位置
+        if (self.customViewInScrollViewMaxIndexPath) {
+            UITableViewCell *cell = [tableView cellForRowAtIndexPath:self.customViewInScrollViewMaxIndexPath];
+            if (cell) {
+                CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMaxIndexPath];
+                cellRect = [tableView convertRect:cellRect toView:self];
+                customViewFrame.origin.y = MIN(customViewFrame.origin.y, CGRectGetMaxY(cellRect)-customViewFrame.size.height);
+                _customView.frame = customViewFrame;
+            }
+           
+        }
+        
+        // 获取customViewInScrollViewIndexPath
+        UIView *view = (UIButton *)self.customView;
         CGPoint pointAtScrollView = [self convertPoint:view.center toView:_scrollView];
-        self.indicatorInScrollViewIndexPath = [(UITableView *)_scrollView indexPathForRowAtPoint:pointAtScrollView];
+        self.customViewInScrollViewIndexPath = [tableView indexPathForRowAtPoint:pointAtScrollView];
+
+       
+        
     }
     else if ([_scrollView isKindOfClass:[UICollectionView class]]) {
-        UIView *view = (UIButton *)self.customView ?: self;
+        
+        // 设置customView 距离scrollView 顶部最少的位置
+        UICollectionView *collectionView = (UICollectionView *)_scrollView;
+        UICollectionViewCell *cell = [collectionView cellForItemAtIndexPath:self.customViewInScrollViewMinIndexPath];
+        if (cell) {
+           CGRect cellRect = [collectionView convertRect:cell.frame toView:self];
+            customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
+            _customView.frame = customViewFrame;
+        }
+        
+        // 设置customView 距离scrollView 底部最大的位置
+        if (self.customViewInScrollViewMaxIndexPath) {
+            UICollectionViewCell *cell = [collectionView cellForItemAtIndexPath:self.customViewInScrollViewMinIndexPath];
+            if (cell) {
+                CGRect cellRect = [collectionView convertRect:cell.frame toView:self];
+                customViewFrame.origin.y = MAX(customViewFrame.origin.y, CGRectGetMaxY(cellRect)-customViewFrame.size.height);
+                _customView.frame = customViewFrame;
+            }
+            
+        }
+       
+        // 获取customViewInScrollViewIndexPath
+        UIView *view = (UIButton *)self.customView;
         CGPoint pointAtScrollView = [view convertPoint:view.center toView:_scrollView];
-        self.indicatorInScrollViewIndexPath = [(UICollectionView *)_scrollView indexPathForItemAtPoint:pointAtScrollView];
+        self.customViewInScrollViewIndexPath = [(UICollectionView *)_scrollView indexPathForItemAtPoint:pointAtScrollView];
     }
     
 }
 
-- (void)setIndicatorInScrollViewIndexPath:(NSIndexPath *)indicatorInScrollViewIndexPath {
-    if ([_indicatorInScrollViewIndexPath isEqual:indicatorInScrollViewIndexPath]) {
+- (void)setCustomViewInScrollViewIndexPath:(NSIndexPath *)customViewInScrollViewIndexPath {
+    if ([_customViewInScrollViewIndexPath isEqual:customViewInScrollViewIndexPath]) {
         return;
     }
-    _indicatorInScrollViewIndexPath = indicatorInScrollViewIndexPath;
+    _customViewInScrollViewIndexPath = customViewInScrollViewIndexPath;
     
-    if (self.indicatorIndexPathChangeBlock) {
-        self.indicatorIndexPathChangeBlock(indicatorInScrollViewIndexPath);
+    if (self.customViewIndexPathChangeBlock) {
+        self.customViewIndexPathChangeBlock(customViewInScrollViewIndexPath);
     }
 }
 
 - (CGFloat)heightOfIndicatoForContentSize {
     if (_scrollView == nil) {
-        return _indicatoMinimiumHeight;
+        return _indicatoMinHeight;
     }
     
     CGFloat heightRatio = _scrollView.frame.size.height / _scrollView.contentSize.height;
     CGFloat height = self.frame.size.height * heightRatio;
-    return MAX(floorf(height), _indicatoMinimiumHeight); // floorf 向下取整 floorf(3.33) = 3;
+    return MAX(floorf(height), _indicatoMinHeight); // floorf 向下取整 floorf(3.33) = 3;
 }
 
 ////////////////////////////////////////////////////////////////////////

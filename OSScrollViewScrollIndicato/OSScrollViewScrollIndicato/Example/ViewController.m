@@ -30,10 +30,11 @@
     [btn sizeToFit];
     self.tableView.os_scrollIndicatoView.customView = btn;
     __weak typeof(self) weakSelf = self;
-    self.tableView.os_scrollIndicatoView.indicatorIndexPathChangeBlock = ^(NSIndexPath *indexPath) {
+    self.tableView.os_scrollIndicatoView.customViewIndexPathChangeBlock = ^(NSIndexPath *indexPath) {
         UIButton *btn = (UIButton *)weakSelf.tableView.os_scrollIndicatoView.customView;
-        [btn setTitle:[NSString stringWithFormat:@"%ld-%d", weakSelf.tableView.os_scrollIndicatoView.indicatorInScrollViewIndexPath.row+1, 100] forState:UIControlStateNormal];
+        [btn setTitle:[NSString stringWithFormat:@"%ld-%d", weakSelf.tableView.os_scrollIndicatoView.customViewInScrollViewIndexPath.row+1, 100] forState:UIControlStateNormal];
     };
+    self.tableView.os_scrollIndicatoView.customViewInScrollViewMaxIndexPath = [NSIndexPath indexPathForRow:98 inSection:0];
     
     // Mark: 当设置此属性为UIScrollViewContentInsetAdjustmentScrollableAxes时，手指放在滚动条上滚动时会出现乱窜的问题，待解决
 //    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;

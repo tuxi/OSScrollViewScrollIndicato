@@ -30,17 +30,21 @@ typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
 /** 指示器的宽度，默认为4.0，当OSScrollIndicatoStyleCustom时，宽度比父控件小6 */
 @property (nonatomic, assign) CGFloat indicatoWidth;
 /** 指示器最小高度，默认为30.0 */
-@property (nonatomic, assign) CGFloat indicatoMinimiumHeight;
+@property (nonatomic, assign) CGFloat indicatoMinHeight;
 /** 用户是否正在拖动指示器 */
 @property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;
-/** 指示器显示之前，指示器对比的缩放值, 当contentSize的高度除以scrollView的高度比例值 > minimumContentHeightScale才显示指示器 */
-@property (nonatomic, assign) CGFloat minimumContentHeightScale;
+/** 指示器显示之前，指示器对比的缩放值, 当contentSize的高度除以scrollView的高度比例值 > minContentHeightScale才显示指示器 */
+@property (nonatomic, assign) CGFloat minContentHeightScale;
 /** 指示器样式 */
 @property (nonatomic, assign) OSScrollIndicatoStyle indicatoStyle;
 @property (nonatomic, strong) UIView *customView;
-/** 当前指示器所在tableView的indexPath, 只有当前是tableView或者collectionView时才有效 */
-@property (nonatomic, strong) NSIndexPath *indicatorInScrollViewIndexPath;
-@property (nonatomic, copy) void (^ indicatorIndexPathChangeBlock)(NSIndexPath *indexPath);
+/** customView所在tableView的indexPath, 只有当前是tableView或者collectionView时才有效 */
+@property (nonatomic, strong) NSIndexPath *customViewInScrollViewIndexPath;
+@property (nonatomic, copy) void (^ customViewIndexPathChangeBlock)(NSIndexPath *indexPath);
+/** customView 顶部 在 scrollView中indexPath， 少于这个indexPath则从此开始，控制customView起始的位置，default is (0,0) */
+@property (nonatomic, strong) NSIndexPath *customViewInScrollViewMinIndexPath;
+/** customView 底部 在 scrollView中indexPath， 大于这个indexPath则从此结束，控制customView结束的位置，default is scrollView 最大的 contentSize 计算的indexPath */
+@property (nonatomic, strong) NSIndexPath *customViewInScrollViewMaxIndexPath;
 
 - (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
 
