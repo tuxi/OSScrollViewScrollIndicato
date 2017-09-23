@@ -437,17 +437,17 @@ indicatoTintColor = _indicatoTintColor;
     customViewFrame.origin.y = indicatoFrame.origin.y + CGRectGetHeight(indicatoFrame)*0.5 - CGRectGetHeight(customViewFrame)*0.5;
     _customView.frame = customViewFrame;
     
-    if (!self.customViewInScrollViewMinIndexPath) {
-        self.customViewInScrollViewMinIndexPath = [NSIndexPath indexPathForRow:1 inSection:0];
-    }
+
     if ([_scrollView isKindOfClass:[UITableView class]]) {
         
         // 设置customView 距离scrollView 顶部最少的位置
         UITableView *tableView = (UITableView *)_scrollView;
-        CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMinIndexPath];
-        cellRect = [tableView convertRect:cellRect toView:self];
-        customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
-         _customView.frame = customViewFrame;
+        if (self.customViewInScrollViewMinIndexPath) {
+            CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMinIndexPath];
+            cellRect = [tableView convertRect:cellRect toView:self];
+            customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
+            _customView.frame = customViewFrame;
+        }
         
         // 设置customView 距离scrollView 底部最大的位置
         if (self.customViewInScrollViewMaxIndexPath) {
@@ -473,11 +473,13 @@ indicatoTintColor = _indicatoTintColor;
         
         // 设置customView 距离scrollView 顶部最少的位置
         UICollectionView *collectionView = (UICollectionView *)_scrollView;
-        UICollectionViewCell *cell = [collectionView cellForItemAtIndexPath:self.customViewInScrollViewMinIndexPath];
-        if (cell) {
-           CGRect cellRect = [collectionView convertRect:cell.frame toView:self];
-            customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
-            _customView.frame = customViewFrame;
+        if (self.customViewInScrollViewMinIndexPath) {
+            UICollectionViewCell *cell = [collectionView cellForItemAtIndexPath:self.customViewInScrollViewMinIndexPath];
+            if (cell) {
+                CGRect cellRect = [collectionView convertRect:cell.frame toView:self];
+                customViewFrame.origin.y = MAX(customViewFrame.origin.y, cellRect.origin.y);
+                _customView.frame = customViewFrame;
+            }
         }
         
         // 设置customView 距离scrollView 底部最大的位置
@@ -550,48 +552,45 @@ indicatoTintColor = _indicatoTintColor;
         return;
     }
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hiddenSelf) object:nil];
-    void (^ block)() = ^{
-        [_feedbackGenerator prepare];
-        
-        self.scrollView.scrollEnabled = NO;
-        self.dragging = YES;
-        
-        CGPoint touchPoint = [touches.anyObject locationInView:self];
-        
-        CGRect indicatoFrame = self.indicatoView.frame;
-        if (touchPoint.y > (indicatoFrame.origin.y - 20) &&
-            touchPoint.y < indicatoFrame.origin.y + (indicatoFrame.size.height + 20)) {
-            self.fingerOffset = CGPointMake(self.fingerOffset.x, (touchPoint.y - indicatoFrame.origin.y));
-            return;
-        }
-        
-        CGFloat halfHeight = indicatoFrame.size.height * 0.5;
-        
-        CGFloat destinationOffsetY = touchPoint.y - halfHeight;
-        destinationOffsetY = MAX(0.0f, destinationOffsetY);
-        destinationOffsetY = MIN(self.frame.size.height - halfHeight, destinationOffsetY);
-        
-        self.fingerOffset = CGPointMake(self.fingerOffset.x, touchPoint.y - destinationOffsetY);
-        indicatoFrame.origin.y = destinationOffsetY;
-        
-        [UIView animateWithDuration:0.2
-                              delay:0.0
-             usingSpringWithDamping:1.0
-              initialSpringVelocity:0.1
-                            options:
-         UIViewAnimationOptionBeginFromCurrentState |
-         UIViewAnimationOptionAllowUserInteraction
-                         animations:^{
-                             self.indicatoView.frame = indicatoFrame;
-                             [self updateCustomViewFrame];
-                         } completion:NULL];
-        
-        [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
-    };
-    block();
-//    [UIView performWithoutAnimation:block];
     
-   
+    [_feedbackGenerator prepare];
+    
+    self.scrollView.scrollEnabled = NO;
+    self.dragging = YES;
+    
+    CGPoint touchPoint = [touches.anyObject locationInView:self];
+    
+    CGRect indicatoFrame = self.indicatoView.frame;
+    if (touchPoint.y > (indicatoFrame.origin.y - 20) &&
+        touchPoint.y < indicatoFrame.origin.y + (indicatoFrame.size.height + 20)) {
+        self.fingerOffset = CGPointMake(self.fingerOffset.x, (touchPoint.y - indicatoFrame.origin.y));
+        return;
+    }
+    
+    CGFloat halfHeight = indicatoFrame.size.height * 0.5;
+    
+    CGFloat destinationOffsetY = touchPoint.y - halfHeight;
+    destinationOffsetY = MAX(0.0f, destinationOffsetY);
+    destinationOffsetY = MIN(self.frame.size.height - halfHeight, destinationOffsetY);
+    
+    self.fingerOffset = CGPointMake(self.fingerOffset.x, touchPoint.y - destinationOffsetY);
+    indicatoFrame.origin.y = destinationOffsetY;
+    
+    [UIView animateWithDuration:0.2
+                          delay:0.0
+         usingSpringWithDamping:1.0
+          initialSpringVelocity:0.1
+                        options:
+     UIViewAnimationOptionBeginFromCurrentState |
+     UIViewAnimationOptionAllowUserInteraction
+                     animations:^{
+                         self.indicatoView.frame = indicatoFrame;
+                         [self updateCustomViewFrame];
+                     } completion:NULL];
+    
+    [self setScrollViewContentOffsetYForIndicatoOffsetY:floorf(destinationOffsetY) animated:NO];
+    
+    
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -747,21 +746,14 @@ indicatoTintColor = _indicatoTintColor;
         [self layoutIfNeeded];
     };
     
-    //    if (dragging == NO) {
-        [UIView animateWithDuration:0.2
-                              delay:0.1
-             usingSpringWithDamping:1.0
-              initialSpringVelocity:0.1
-                            options:
-         UIViewAnimationOptionBeginFromCurrentState |
-         UIViewAnimationOptionAllowUserInteraction
-                         animations:block completion:NULL];
-        
-//    }
-//    else {
-//        block();
-//    }
-   
+    [UIView animateWithDuration:0.2
+                          delay:0.1
+         usingSpringWithDamping:1.0
+          initialSpringVelocity:0.1
+                        options:
+     UIViewAnimationOptionBeginFromCurrentState |
+     UIViewAnimationOptionAllowUserInteraction
+                     animations:block completion:NULL];
     
 }
 

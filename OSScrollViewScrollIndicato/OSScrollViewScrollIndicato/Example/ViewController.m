@@ -9,6 +9,8 @@
 #import "ViewController.h"
 #import "UIScrollView+OSScrollIndicatoExtend.h"
 
+static NSUInteger dataCount = 50;
+
 @interface ViewController ()
 
 @end
@@ -32,14 +34,32 @@
     __weak typeof(self) weakSelf = self;
     self.tableView.os_scrollIndicatoView.customViewIndexPathChangeBlock = ^(NSIndexPath *indexPath) {
         UIButton *btn = (UIButton *)weakSelf.tableView.os_scrollIndicatoView.customView;
-        [btn setTitle:[NSString stringWithFormat:@"%ld-%d", weakSelf.tableView.os_scrollIndicatoView.customViewInScrollViewIndexPath.row+1, 100] forState:UIControlStateNormal];
+        [btn setTitle:[NSString stringWithFormat:@"%ld-%ld", weakSelf.tableView.os_scrollIndicatoView.customViewInScrollViewIndexPath.row+1, dataCount] forState:UIControlStateNormal];
     };
-    self.tableView.os_scrollIndicatoView.customViewInScrollViewMaxIndexPath = [NSIndexPath indexPathForRow:98 inSection:0];
+    self.tableView.os_scrollIndicatoView.customViewInScrollViewMaxIndexPath = [NSIndexPath indexPathForRow:dataCount-5 inSection:0];
+    self.tableView.os_scrollIndicatoView.customViewInScrollViewMinIndexPath = [NSIndexPath indexPathForRow:0 inSection:0];
     
     // Mark: 当设置此属性为UIScrollViewContentInsetAdjustmentScrollableAxes时，手指放在滚动条上滚动时会出现乱窜的问题，待解决
 //    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;
     
+    
+    // 添加tableHeaderView
+    UIImageView *imageView = [[UIImageView alloc] init];
+    imageView.image = [UIImage imageNamed:@"mm"];
+    CGRect imageRect = imageView.frame;
+    imageRect.size.height = 200.0;
+    imageView.frame = imageRect;
+    self.tableView.tableHeaderView = imageView;
+    
+    // 添加tableFooterView
+    UIView *footerView = [[UIView alloc] init];
+    footerView.backgroundColor = [UIColor blueColor];
+    CGRect footerViewRect = footerView.frame;
+    footerViewRect.size.height = 200.0;
+    footerView.frame = footerViewRect;
+    self.tableView.tableFooterView = footerView;
 }
+
 
 
 - (void)didReceiveMemoryWarning {
@@ -48,7 +68,7 @@
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 100;
+    return dataCount;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {

@@ -41,9 +41,9 @@ typedef NS_ENUM(NSInteger, OSScrollIndicatoStyle) {
 /** customView所在tableView的indexPath, 只有当前是tableView或者collectionView时才有效 */
 @property (nonatomic, strong) NSIndexPath *customViewInScrollViewIndexPath;
 @property (nonatomic, copy) void (^ customViewIndexPathChangeBlock)(NSIndexPath *indexPath);
-/** customView 顶部 在 scrollView中indexPath， 少于这个indexPath则从此开始，控制customView起始的位置，default is (0,0) */
+/** customView 顶部 在 scrollView中indexPath， 少于这个indexPath则从此开始，控制customView起始的位置，default is nil */
 @property (nonatomic, strong) NSIndexPath *customViewInScrollViewMinIndexPath;
-/** customView 底部 在 scrollView中indexPath， 大于这个indexPath则从此结束，控制customView结束的位置，default is scrollView 最大的 contentSize 计算的indexPath */
+/** customView 底部 在 scrollView中indexPath， 大于这个indexPath则从此结束，控制customView结束的位置，default is nil 最大的 contentSize 计算的indexPath */
 @property (nonatomic, strong) NSIndexPath *customViewInScrollViewMaxIndexPath;
 
 - (instancetype)initWithIndicatoStyle:(OSScrollIndicatoStyle)indicatoStyle;
