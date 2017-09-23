@@ -451,13 +451,10 @@ indicatoTintColor = _indicatoTintColor;
         
         // 设置customView 距离scrollView 底部最大的位置
         if (self.customViewInScrollViewMaxIndexPath) {
-            UITableViewCell *cell = [tableView cellForRowAtIndexPath:self.customViewInScrollViewMaxIndexPath];
-            if (cell) {
-                CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMaxIndexPath];
-                cellRect = [tableView convertRect:cellRect toView:self];
-                customViewFrame.origin.y = MIN(customViewFrame.origin.y, CGRectGetMaxY(cellRect)-customViewFrame.size.height);
-                _customView.frame = customViewFrame;
-            }
+            CGRect cellRect = [tableView rectForRowAtIndexPath:self.customViewInScrollViewMaxIndexPath];
+            cellRect = [tableView convertRect:cellRect toView:self];
+            customViewFrame.origin.y = MIN(customViewFrame.origin.y, CGRectGetMaxY(cellRect)-customViewFrame.size.height);
+            _customView.frame = customViewFrame;
            
         }
         

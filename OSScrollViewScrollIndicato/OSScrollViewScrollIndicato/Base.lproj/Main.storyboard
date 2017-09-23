@@ -51,11 +51,8 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4c4-ac-tAd">
-                                <rect key="frame" x="137.5" y="318" width="100" height="30"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="100" id="WpR-tQ-onE"/>
-                                </constraints>
-                                <state key="normal" title="push"/>
+                                <rect key="frame" x="111" y="318" width="153" height="30"/>
+                                <state key="normal" title="Custom scroll Indicato"/>
                                 <connections>
                                     <segue destination="1G8-Sj-p9u" kind="show" id="jsl-9K-273"/>
                                 </connections>
