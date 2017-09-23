@@ -21,6 +21,12 @@ static NSUInteger dataCount = 50;
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
+    [self setupCustomScrollIndicato];
+    [self setupTableView];
+   
+}
+
+- (void)setupCustomScrollIndicato {
     self.tableView.os_scrollIndicatoStyle = OSScrollIndicatoStyleCustom;
     self.tableView.separatorInset = UIEdgeInsetsMake(64.0, 0, 0, 0);
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -40,9 +46,10 @@ static NSUInteger dataCount = 50;
     self.tableView.os_scrollIndicatoView.customViewInScrollViewMinIndexPath = [NSIndexPath indexPathForRow:0 inSection:0];
     
     // Mark: 当设置此属性为UIScrollViewContentInsetAdjustmentScrollableAxes时，手指放在滚动条上滚动时会出现乱窜的问题，待解决
-//    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;
-    
-    
+    //    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentScrollableAxes;
+}
+
+- (void)setupTableView {
     // 添加tableHeaderView
     UIImageView *imageView = [[UIImageView alloc] init];
     imageView.image = [UIImage imageNamed:@"mm"];
